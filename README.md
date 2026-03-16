@@ -1,2 +1,2 @@
 # XMARs
-Lung cancer
+Lung cancer drug resistance project 
