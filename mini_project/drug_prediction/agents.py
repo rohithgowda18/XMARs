@@ -13,9 +13,15 @@ Agent 4: Clinical Advisor   → Synthesis + Gemini human explanation
 Each agent is a standalone Python class with a run() method.
 """
 
+import os
 import json
 import time
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(Path(__file__).parent.parent / '.env')
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Optional
@@ -920,7 +926,7 @@ class AgentPipeline:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    API_KEY = "AIzaSyDXOyLIe6qbKzeGWV9O31YjrV7SQjxQSYk"
+    API_KEY = os.getenv("GEMINI_API_KEY")
 
     test_mutations = [
         {'gene': 'EGFR', 'vaf': 0.45},

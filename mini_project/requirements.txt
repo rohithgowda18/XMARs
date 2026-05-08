@@ -1,0 +1,28 @@
+# XMARs Project Dependencies - Better Final Version
+
+# Core Data Science
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# ML Explainability
+shap>=0.43.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Model Utilities
+joblib>=1.3.0
+
+# Web Framework
+flask>=3.0.0
+python-dotenv>=1.0.0
+
+# Gemini API & AI SDKs
+google-genai>=1.0.0
+google-generativeai>=0.8.0
+
+# PDF Parsing
+pypdf>=5.0.0

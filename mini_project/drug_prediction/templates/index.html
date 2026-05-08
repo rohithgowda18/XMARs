@@ -1205,6 +1205,102 @@
             text-decoration: none;
         }
 
+        /* PDF Upload */
+        .upload-card {
+            border-style: dashed;
+            border-color: var(--border-glass);
+            text-align: center;
+            padding: 40px 24px;
+            margin-bottom: 24px;
+        }
+
+        .upload-card:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.03);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: var(--accent-blue);
+            opacity: 0.8;
+        }
+
+        .upload-btn-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--accent-blue);
+            color: white;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.2s;
+        }
+
+        .upload-btn-label:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .upload-btn-label input {
+            display: none;
+        }
+
+        .upload-status {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Verification Table */
+        .verification-card {
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .verification-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .verification-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .verification-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .verification-table input {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .verification-table .remove-btn {
+            background: none;
+            border: none;
+            color: var(--accent-red);
+            cursor: pointer;
+            font-size: 1.1rem;
+            opacity: 0.6;
+        }
+
+        .verification-table .remove-btn:hover {
+            opacity: 1;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header h1 {
@@ -1251,10 +1347,51 @@
                 most effective candidate therapies for lung cancer.</p>
         </header>
 
+        <!-- Alternative Input: PDF Upload -->
+        <section class="card upload-card" id="uploadCard">
+            <div class="upload-icon">📄</div>
+            <div class="card-title" style="justify-content: center;">Upload Genomic Report</div>
+            <div class="card-subtitle">Automatically extract mutations from PDF pathology reports (FoundationOne, Caris, Guardant, etc.)</div>
+            
+            <label class="upload-btn-label">
+                <span>Choose PDF File</span>
+                <input type="file" id="pdfInput" accept=".pdf" onchange="handleFileUpload()">
+            </label>
+            <div class="upload-status" id="uploadStatus">No file selected</div>
+            
+            <button class="btn-primary" id="parseBtn" style="margin-top: 20px; display: none;" onclick="parsePDF()">
+                <span>⚡</span> Extract Mutations
+            </button>
+        </section>
+
+        <!-- Extracted Mutations Verification -->
+        <section class="card verification-card" id="verificationCard">
+            <div class="card-title"><span class="icon">🔍</span> Verify Extracted Mutations</div>
+            <div class="card-subtitle">Please verify the extracted data before running analysis. You can manually correct values or add missing mutations.</div>
+            
+            <table class="verification-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Gene Symbol</th>
+                        <th style="width: 40%;">VAF (0.0 - 1.0)</th>
+                        <th style="width: 20%;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="verificationTableBody"></tbody>
+            </table>
+            
+            <div class="btn-row" style="margin-top: 24px;">
+                <button class="btn-ai" onclick="confirmAndAnalyze()">
+                    <span>🚀</span> Confirm & Run AI Analysis
+                </button>
+                <button class="btn-secondary" onclick="addMutationRow()">+ Add Mutation</button>
+                <button class="btn-secondary" onclick="cancelVerification()">Cancel</button>
+            </div>
+        </section>
+
         <section class="card" id="inputCard">
-            <div class="card-title"><span class="icon">🧬</span> Select Mutated Genes</div>
-            <div class="card-subtitle">Choose the genes identified as mutated in the patient's tumor. The system will
-                analyze affected pathways and rank drugs by predicted sensitivity.</div>
+            <div class="card-title"><span class="icon">🧬</span> Manual Mutation Selection</div>
+            <div class="card-subtitle">Alternatively, choose genes manually and adjust their VAF values using the grid below.</div>
             <div class="gene-grid" id="geneGrid"></div>
 
             <div class="vaf-section" id="vafSection">
@@ -1891,6 +2028,121 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ═══ PDF Parsing Logic ═══
+        function handleFileUpload() {
+            const input = document.getElementById('pdfInput');
+            const status = document.getElementById('uploadStatus');
+            const parseBtn = document.getElementById('parseBtn');
+            
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                status.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                parseBtn.style.display = 'inline-block';
+            } else {
+                status.textContent = 'No file selected';
+                parseBtn.style.display = 'none';
+            }
+        }
+
+        async function parsePDF() {
+            const input = document.getElementById('pdfInput');
+            if (input.files.length === 0) return;
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            document.getElementById('loadingOverlay').classList.add('visible');
+            document.getElementById('loadingOverlay').querySelector('.loading-text').textContent = "Parsing PDF & Extracting Mutations...";
+
+            try {
+                const res = await fetch('/parse-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                document.getElementById('loadingOverlay').classList.remove('visible');
+
+                if (data.error) {
+                    alert(`Parsing Error: ${data.error}`);
+                    return;
+                }
+
+                renderVerificationTable(data.mutations);
+            } catch (err) {
+                document.getElementById('loadingOverlay').classList.remove('visible');
+                alert(`Connection error: ${err.message}`);
+            }
+        }
+
+        function renderVerificationTable(mutations) {
+            const card = document.getElementById('verificationCard');
+            const tbody = document.getElementById('verificationTableBody');
+            const uploadCard = document.getElementById('uploadCard');
+            const inputCard = document.getElementById('inputCard');
+
+            tbody.innerHTML = '';
+            
+            if (!mutations || mutations.length === 0) {
+                addMutationRow(); // Start with one empty row if none found
+            } else {
+                mutations.forEach(m => addMutationRow(m.gene, m.vaf));
+            }
+
+            // Hide upload, show verification
+            uploadCard.style.display = 'none';
+            inputCard.style.display = 'none';
+            card.style.display = 'block';
+            card.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function addMutationRow(gene = '', vaf = 0.5) {
+            const tbody = document.getElementById('verificationTableBody');
+            const tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td><input type="text" class="v-gene" value="${gene}" placeholder="e.g. EGFR"></td>
+                <td><input type="number" class="v-vaf" value="${vaf}" min="0" max="1" step="0.01"></td>
+                <td style="text-align:center"><button class="remove-btn" onclick="this.closest('tr').remove()">🗑️</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function cancelVerification() {
+            document.getElementById('verificationCard').style.display = 'none';
+            document.getElementById('uploadCard').style.display = 'block';
+            document.getElementById('inputCard').style.display = 'block';
+        }
+
+        async function confirmAndAnalyze() {
+            const rows = document.querySelectorAll('#verificationTableBody tr');
+            const mutations = [];
+            
+            rows.forEach(row => {
+                const geneInput = row.querySelector('.v-gene');
+                const vafInput = row.querySelector('.v-vaf');
+                
+                if (geneInput && vafInput) {
+                    const gene = geneInput.value.toUpperCase().trim();
+                    const vaf = parseFloat(vafInput.value);
+                    if (gene) {
+                        mutations.push({ gene, vaf: isNaN(vaf) ? 0.5 : vaf });
+                    }
+                }
+            });
+
+            if (mutations.length === 0) {
+                alert("Please add at least one mutation.");
+                return;
+            }
+
+            // Reset manual selection to match confirmed data
+            selectedGenes = {};
+            mutations.forEach(m => { selectedGenes[m.gene] = m.vaf; });
+            
+            // Run analysis
+            runAIAnalysis();
         }
     </script>
 </body>

@@ -17,16 +17,23 @@ Run:
 """
 
 import sys
+import os
 import json
 import logging
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(Path(__file__).parent.parent / '.env')
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
 from drug_knowledge_base import get_knowledge_base
 from resistance_predictor import ResistancePredictor
+from parsers.pdf_parser import extract_text_from_pdf
+from parsers.mutation_extractor import extract_mutations
 
 # Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -130,11 +137,43 @@ def get_summary():
     return jsonify(kb.get_summary())
 
 
-# ═══════════════════════════════════════════════════════════════════
-# AI AGENT PIPELINE ENDPOINTS
+@app.route('/parse-pdf', methods=['POST'])
+def parse_pdf():
+    """
+    Extract mutations from an uploaded PDF report.
+    Returns: JSON {"mutations": [...]}
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part in the request'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        if file:
+            # 1. Extract text
+            text = extract_text_from_pdf(file)
+            if not text:
+                return jsonify({'error': 'Could not extract text from PDF'}), 400
+            
+            # 2. Extract mutations
+            mutations = extract_mutations(
+                text, 
+                available_genes=kb.available_genes,
+                api_key=GEMINI_API_KEY
+            )
+            
+            return jsonify({'mutations': mutations, 'raw_text_length': len(text)})
+
+    except Exception as e:
+        logger.error(f"PDF parsing error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ═══════════════════════════════════════════════════════════════════
 
-GEMINI_API_KEY = "AIzaSyDXOyLIe6qbKzeGWV9O31YjrV7SQjxQSYk"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 @app.route('/api/ai-status', methods=['GET'])
