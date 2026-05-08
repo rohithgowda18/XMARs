@@ -1,0 +1,133 @@
+{
+  "EGFR_SIGNALING": {
+    "genes": [
+      "EGFR",
+      "KRAS",
+      "PTEN",
+      "TP53",
+      "PIK3CA",
+      "BRAF"
+    ],
+    "description": "EGFR-mediated growth signaling pathway",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "EGFR",
+      "BRAF",
+      "MEK1/2"
+    ]
+  },
+  "TP53_APOPTOSIS": {
+    "genes": [
+      "TP53",
+      "MDM2",
+      "BAX",
+      "PUMA",
+      "NOXA",
+      "ATM"
+    ],
+    "description": "p53-mediated apoptosis and cell cycle control",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "MDM2"
+    ]
+  },
+  "PI3K_AKT_MTOR": {
+    "genes": [
+      "PIK3CA",
+      "AKT1",
+      "AKT2",
+      "PTEN",
+      "mTOR",
+      "TSC1",
+      "TSC2"
+    ],
+    "description": "Growth and survival signaling pathway",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "PI3K",
+      "AKT",
+      "mTOR"
+    ]
+  },
+  "MAPK_ERK": {
+    "genes": [
+      "KRAS",
+      "BRAF",
+      "MEK1",
+      "MEK2",
+      "ERK1",
+      "ERK2",
+      "RAF1"
+    ],
+    "description": "MAPK cascade for proliferation",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "BRAF",
+      "MEK1/2"
+    ]
+  },
+  "CELL_CYCLE": {
+    "genes": [
+      "RB1",
+      "CDK4",
+      "CDK6",
+      "CDKN2A",
+      "CDKN2B",
+      "E2F1",
+      "CCND1"
+    ],
+    "description": "Cell cycle checkpoint control",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "CDK4/6"
+    ]
+  },
+  "WNT_SIGNALING": {
+    "genes": [
+      "APC",
+      "CTNNB1",
+      "GSK3B",
+      "AXIN1",
+      "TCF7L2",
+      "WNT"
+    ],
+    "description": "Wnt pathway for cell differentiation",
+    "cancer_relevance": "Medium",
+    "drug_targets": [
+      "Tankyrase",
+      "PORCN"
+    ]
+  },
+  "RAS_PATHWAY": {
+    "genes": [
+      "KRAS",
+      "NRAS",
+      "HRAS",
+      "NF1",
+      "SPRED1",
+      "CBL"
+    ],
+    "description": "RAS activation and negative regulation",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "KRAS",
+      "MEK"
+    ]
+  },
+  "DNA_REPAIR": {
+    "genes": [
+      "BRCA1",
+      "BRCA2",
+      "MLH1",
+      "MSH2",
+      "XRCC1",
+      "ATM",
+      "ATR"
+    ],
+    "description": "DNA damage response and repair",
+    "cancer_relevance": "High",
+    "drug_targets": [
+      "PARP"
+    ]
+  }
+}

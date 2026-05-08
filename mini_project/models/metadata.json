@@ -1,0 +1,22 @@
+{
+  "trained_at": "2026-03-17T16:28:39.705271",
+  "best_model": "Random Forest",
+  "data_source": "LUAD_TCGA cancer genomics dataset",
+  "target": "Cancer Type Classification",
+  "features": [
+    "unique_genes",
+    "avg_vaf",
+    "max_vaf",
+    "coding_mutations",
+    "total_mutations",
+    "cnv_mean",
+    "cnv_max",
+    "cnv_std",
+    "cnv_count"
+  ],
+  "models": [
+    "random_forest",
+    "gradient_boosting",
+    "logistic_regression"
+  ]
+}

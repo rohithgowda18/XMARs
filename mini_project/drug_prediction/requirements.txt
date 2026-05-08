@@ -1,0 +1,6 @@
+# Drug Prediction Module Dependencies
+# (pandas, numpy, scikit-learn already installed in parent venv)
+flask>=3.0.0
+shap>=0.43.0
+matplotlib>=3.7.0
+google-genai>=1.0.0
