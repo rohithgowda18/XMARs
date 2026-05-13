@@ -155,25 +155,50 @@ def parse_pdf():
             # 1. Extract text
             text = extract_text_from_pdf(file)
             if not text:
-                return jsonify({'error': 'Could not extract text from PDF'}), 400
+                return jsonify({
+                    'success': False,
+                    'error': 'Could not extract text from PDF',
+                    'reason': 'The PDF file appears to be empty or unreadable.'
+                }), 200
             
-            # 2. Extract mutations
+            # 2. Extract mutations (Stabilized Pipeline: Regex -> Groq -> Gemini + Validator)
             mutations = extract_mutations(
                 text, 
-                available_genes=kb.available_genes,
-                api_key=GEMINI_API_KEY
+                approved_genes=kb.available_genes,
+                gemini_key=GEMINI_API_KEY,
+                groq_key=GROQ_API_KEY
             )
             
-            return jsonify({'mutations': mutations, 'raw_text_length': len(text)})
+            if not mutations:
+                logger.warning("Extraction returned no validated mutations.")
+                return jsonify({
+                    'success': False,
+                    'mutations': [],
+                    'error': 'No valid clinical mutation blocks detected',
+                    'reason': 'Regex extraction found nothing and AI providers are unavailable or quota exhausted.',
+                    'status': 'extraction_failed'
+                }), 200
+            
+            return jsonify({
+                'success': True,
+                'mutations': mutations, 
+                'raw_text_length': len(text),
+                'status': 'parsed_stabilized'
+            })
 
     except Exception as e:
         logger.error(f"PDF parsing error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'reason': 'Internal server error during parsing.'
+        }), 200
 
 
 # ═══════════════════════════════════════════════════════════════════
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 
 @app.route('/api/ai-status', methods=['GET'])

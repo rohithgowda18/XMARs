@@ -699,34 +699,22 @@ Use the actual numbers and drug names from the data above."""
 
         client = genai.Client(api_key=api_key)
 
-        # Try multiple model versions for compatibility
-        models_to_try = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
-
-        for model_name in models_to_try:
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config={
-                        "temperature": 0.3,
-                        "max_output_tokens": 2048,
-                    }
-                )
-                logger.info(f"Gemini explanation generated using {model_name}")
-                return response.text
-            except Exception as e:
-                if "429" in str(e):
-                    logger.warning(f"Rate limited on {model_name}, trying next...")
-                    time.sleep(2)
-                    continue
-                elif "not found" in str(e).lower() or "not supported" in str(e).lower():
-                    logger.warning(f"Model {model_name} not available, trying next...")
-                    continue
-                else:
-                    logger.error(f"Gemini error with {model_name}: {e}")
-                    continue
-
-        logger.warning("All Gemini models failed, falling back to structured report")
+        # Modern Generation Call (Gemini 2.0 Flash)
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config={
+                    "temperature": 0.3,
+                    "max_output_tokens": 2048,
+                }
+            )
+            logger.info("Gemini explanation generated using gemini-2.0-flash")
+            return response.text
+        except Exception as e:
+            logger.error(f"Gemini error with gemini-2.0-flash: {e}")
+            return None
+        logger.warning("Gemini model failed, falling back to structured report")
         return None
 
     def _generate_fallback_report(self, structured_report: Dict) -> str:

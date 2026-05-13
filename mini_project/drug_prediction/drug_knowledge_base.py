@@ -103,6 +103,12 @@ class DrugKnowledgeBase:
 
         df = pd.read_csv(csv_path, usecols=['gene_symbol'])
         self.available_genes = sorted(df['gene_symbol'].unique().tolist())
+        
+        # Ensure NFE2L2 is included (clinical lung cancer biomarker)
+        if 'NFE2L2' not in self.available_genes:
+            self.available_genes.append('NFE2L2')
+            self.available_genes.sort()
+            
         logger.info(f"Found {len(self.available_genes)} available genes in mutation data")
 
     def _build_indices(self):

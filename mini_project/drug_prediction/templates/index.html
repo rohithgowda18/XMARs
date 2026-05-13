@@ -1372,9 +1372,10 @@
             <table class="verification-table">
                 <thead>
                     <tr>
-                        <th style="width: 40%;">Gene Symbol</th>
-                        <th style="width: 40%;">VAF (0.0 - 1.0)</th>
-                        <th style="width: 20%;">Action</th>
+                        <th style="width: 30%;">Gene</th>
+                        <th style="width: 30%;">Mutation (Protein)</th>
+                        <th style="width: 25%;">VAF (0.0 - 1.0)</th>
+                        <th style="width: 15%;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="verificationTableBody"></tbody>
@@ -2085,9 +2086,9 @@
             tbody.innerHTML = '';
             
             if (!mutations || mutations.length === 0) {
-                addMutationRow(); // Start with one empty row if none found
+                addMutationRow(); 
             } else {
-                mutations.forEach(m => addMutationRow(m.gene, m.vaf));
+                mutations.forEach(m => addMutationRow(m.gene, m.vaf, m.mutation));
             }
 
             // Hide upload, show verification
@@ -2097,13 +2098,14 @@
             card.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function addMutationRow(gene = '', vaf = 0.5) {
+        function addMutationRow(gene = '', vaf = 0.5, mutation = 'p.') {
             const tbody = document.getElementById('verificationTableBody');
             const tr = document.createElement('tr');
             
             tr.innerHTML = `
                 <td><input type="text" class="v-gene" value="${gene}" placeholder="e.g. EGFR"></td>
-                <td><input type="number" class="v-vaf" value="${vaf}" min="0" max="1" step="0.01"></td>
+                <td><input type="text" class="v-mut" value="${mutation}" placeholder="e.g. p.G12C"></td>
+                <td><input type="number" class="v-vaf" value="${vaf}" min="0" max="1" step="0.001" required></td>
                 <td style="text-align:center"><button class="remove-btn" onclick="this.closest('tr').remove()">🗑️</button></td>
             `;
             tbody.appendChild(tr);
@@ -2121,23 +2123,30 @@
             
             rows.forEach(row => {
                 const geneInput = row.querySelector('.v-gene');
+                const mutInput = row.querySelector('.v-mut');
                 const vafInput = row.querySelector('.v-vaf');
                 
-                if (geneInput && vafInput) {
+                if (geneInput && vafInput && mutInput) {
                     const gene = geneInput.value.toUpperCase().trim();
+                    const mutation = mutInput.value.trim();
                     const vaf = parseFloat(vafInput.value);
-                    if (gene) {
-                        mutations.push({ gene, vaf: isNaN(vaf) ? 0.5 : vaf });
+                    
+                    if (gene && mutation && !isNaN(vaf)) {
+                        mutations.push({ 
+                            gene, 
+                            mutation,
+                            vaf: Math.min(Math.max(vaf, 0), 1) 
+                        });
                     }
                 }
             });
 
             if (mutations.length === 0) {
-                alert("Please add at least one mutation.");
+                alert("Please add at least one complete mutation (Gene + Mutation + VAF).");
                 return;
             }
 
-            // Reset manual selection to match confirmed data
+            // Reset manual selection
             selectedGenes = {};
             mutations.forEach(m => { selectedGenes[m.gene] = m.vaf; });
             
