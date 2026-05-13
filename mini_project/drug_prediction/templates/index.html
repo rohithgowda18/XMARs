@@ -1382,8 +1382,11 @@
             </table>
             
             <div class="btn-row" style="margin-top: 24px;">
+                <button class="btn-primary" onclick="confirmAndPredict()">
+                    <span>⚡</span> Confirm & Predict
+                </button>
                 <button class="btn-ai" onclick="confirmAndAnalyze()">
-                    <span>🚀</span> Confirm & Run AI Analysis
+                    <span>🤖</span> Confirm & Run AI Analysis
                 </button>
                 <button class="btn-secondary" onclick="addMutationRow()">+ Add Mutation</button>
                 <button class="btn-secondary" onclick="cancelVerification()">Cancel</button>
@@ -1415,6 +1418,12 @@
         </section>
 
         <section id="results-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="font-size: 1.5rem; font-weight: 800; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Analysis Results</h2>
+                <button class="btn-ai" id="resultsAiBtn" onclick="runAIAnalysis()">
+                    <span>🤖</span> Run AI Agent Analysis
+                </button>
+            </div>
             <div class="stats-grid" id="statsGrid"></div>
 
             <div class="tabs">
@@ -1656,6 +1665,9 @@
 
             renderDrugCards(data.drug_predictions.slice(0, 10));
             renderPathways(data.affected_pathways);
+            
+            // Ensure UI buttons and selection state are in sync
+            syncUIWithSelectedGenes();
         }
 
         function getCategoryStyle(cat) {
@@ -1727,7 +1739,7 @@
         // ═══ AI Agent Pipeline Analysis ═══
         let aiPipelineResult = null;
 
-        async function runAIAnalysis() {
+        async function runAIAnalysis(autoSwitch = true) {
             const mutations = Object.entries(selectedGenes).map(([gene, vaf]) => ({ gene, vaf }));
             if (!mutations.length) return;
 
@@ -1735,7 +1747,11 @@
             section.classList.add('visible');
             document.getElementById('aiTabBtn').style.display = '';
             document.getElementById('shapTabBtn').style.display = '';
-            switchTab('ai');
+            
+            if (autoSwitch) {
+                switchTab('ai');
+            }
+            
             document.getElementById('aiLoading').classList.add('visible');
             document.getElementById('aiReportContent').style.display = 'none';
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2117,30 +2133,75 @@
             document.getElementById('inputCard').style.display = 'block';
         }
 
-        async function confirmAndAnalyze() {
+        function syncUIWithSelectedGenes() {
+            const genes = Object.keys(selectedGenes);
+            console.log("Syncing UI for genes:", genes);
+            
+            // Update gene chips in the grid
+            document.querySelectorAll('.gene-chip').forEach(chip => {
+                const gene = chip.id.replace('chip-', '').trim().toUpperCase();
+                const isSelected = genes.some(g => g.trim().toUpperCase() === gene);
+                
+                if (isSelected) {
+                    chip.classList.add('selected');
+                } else {
+                    chip.classList.remove('selected');
+                }
+            });
+            
+            updateVafSection();
+            updateButtons();
+            
+            // Also update the results-section AI button
+            const resultsAiBtn = document.getElementById('resultsAiBtn');
+            if (resultsAiBtn) {
+                resultsAiBtn.disabled = genes.length === 0;
+            }
+        }
+
+        function getVerifiedMutations() {
             const rows = document.querySelectorAll('#verificationTableBody tr');
             const mutations = [];
-            
             rows.forEach(row => {
                 const geneInput = row.querySelector('.v-gene');
                 const mutInput = row.querySelector('.v-mut');
                 const vafInput = row.querySelector('.v-vaf');
-                
                 if (geneInput && vafInput && mutInput) {
                     const gene = geneInput.value.toUpperCase().trim();
                     const mutation = mutInput.value.trim();
                     const vaf = parseFloat(vafInput.value);
-                    
                     if (gene && mutation && !isNaN(vaf)) {
-                        mutations.push({ 
-                            gene, 
-                            mutation,
-                            vaf: Math.min(Math.max(vaf, 0), 1) 
-                        });
+                        mutations.push({ gene, mutation, vaf: Math.min(Math.max(vaf, 0), 1) });
                     }
                 }
             });
+            return mutations;
+        }
 
+        async function confirmAndPredict() {
+            const mutations = getVerifiedMutations();
+            if (mutations.length === 0) {
+                alert("Please add at least one complete mutation (Gene + Mutation + VAF).");
+                return;
+            }
+            // Reset manual selection
+            selectedGenes = {};
+            mutations.forEach(m => { selectedGenes[m.gene] = m.vaf; });
+            
+            // Sync the manual input UI so buttons are enabled and genes are checked
+            syncUIWithSelectedGenes();
+
+            // Hide verification card and show input card (now synced)
+            document.getElementById('verificationCard').style.display = 'none';
+            document.getElementById('uploadCard').style.display = 'block';
+            document.getElementById('inputCard').style.display = 'block';
+            
+            // Run prediction
+            runPrediction();
+        }
+
+        async function confirmAndAnalyze() {
+            const mutations = getVerifiedMutations();
             if (mutations.length === 0) {
                 alert("Please add at least one complete mutation (Gene + Mutation + VAF).");
                 return;
@@ -2150,8 +2211,19 @@
             selectedGenes = {};
             mutations.forEach(m => { selectedGenes[m.gene] = m.vaf; });
             
-            // Run analysis
-            runAIAnalysis();
+            // Sync the manual input UI
+            syncUIWithSelectedGenes();
+
+            // 1. Show local results immediately
+            await runPrediction();
+
+            // 2. Hide verification card and show others
+            document.getElementById('verificationCard').style.display = 'none';
+            document.getElementById('uploadCard').style.display = 'block';
+            document.getElementById('inputCard').style.display = 'block';
+
+            // 3. Start AI analysis in background
+            runAIAnalysis(false); 
         }
     </script>
 </body>
