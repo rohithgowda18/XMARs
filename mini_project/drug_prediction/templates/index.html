@@ -2104,7 +2104,9 @@
             if (!mutations || mutations.length === 0) {
                 addMutationRow(); 
             } else {
-                mutations.forEach(m => addMutationRow(m.gene, m.vaf, m.mutation));
+                mutations.forEach(m => {
+                    addMutationRow(m.gene, m.vaf, m.mutation, m.requires_manual_vaf);
+                });
             }
 
             // Hide upload, show verification
@@ -2114,14 +2116,18 @@
             card.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function addMutationRow(gene = '', vaf = 0.5, mutation = 'p.') {
+        function addMutationRow(gene = '', vaf = 0.5, mutation = 'p.', manual = false) {
             const tbody = document.getElementById('verificationTableBody');
             const tr = document.createElement('tr');
+            if (manual) tr.style.backgroundColor = 'rgba(255, 150, 0, 0.05)';
             
+            const vafValue = (vaf === null || vaf === undefined) ? '' : vaf;
+            const warning = manual ? '<span title="Structural alteration: Please verify VAF manually" style="cursor:help;margin-left:5px">⚠️</span>' : '';
+
             tr.innerHTML = `
-                <td><input type="text" class="v-gene" value="${gene}" placeholder="e.g. EGFR"></td>
-                <td><input type="text" class="v-mut" value="${mutation}" placeholder="e.g. p.G12C"></td>
-                <td><input type="number" class="v-vaf" value="${vaf}" min="0" max="1" step="0.001" required></td>
+                <td><input type="text" class="v-gene" value="${gene}" placeholder="e.g. EGFR" style="${manual ? 'border-left: 3px solid var(--accent-purple)' : ''}"></td>
+                <td><input type="text" class="v-mut" value="${mutation}" placeholder="e.g. p.G12C"> ${warning}</td>
+                <td><input type="number" class="v-vaf" value="${vafValue}" min="0" max="1" step="0.001" placeholder="${manual ? 'Manual VAF' : '0.5'}" ${manual ? 'required' : ''}></td>
                 <td style="text-align:center"><button class="remove-btn" onclick="this.closest('tr').remove()">🗑️</button></td>
             `;
             tbody.appendChild(tr);

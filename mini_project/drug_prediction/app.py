@@ -152,21 +152,18 @@ def parse_pdf():
             return jsonify({'error': 'No selected file'}), 400
 
         if file:
+            logger.info("Starting PDF parsing pipeline")
             # 1. Extract text
             text = extract_text_from_pdf(file)
-            if not text:
-                return jsonify({
-                    'success': False,
-                    'error': 'Could not extract text from PDF',
-                    'reason': 'The PDF file appears to be empty or unreadable.'
-                }), 200
+            logger.info(f"Digital extraction length: {len(text)}")
             
-            # 2. Extract mutations (Stabilized Pipeline: Regex -> Groq -> Gemini + Validator)
+            # 2. Extract mutations (Stabilized Pipeline: Regex -> Groq -> Gemini -> Gemini Vision)
             mutations = extract_mutations(
                 text, 
                 approved_genes=kb.available_genes,
-                gemini_key=GEMINI_API_KEY,
-                groq_key=GROQ_API_KEY
+                gemini_key=GEMINI_PARSER_KEY,
+                groq_key=GROQ_API_KEY,
+                pdf_file=file
             )
             
             if not mutations:
@@ -199,6 +196,7 @@ def parse_pdf():
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GEMINI_PARSER_KEY = os.getenv("GEMINI_PARSER_KEY") or GEMINI_API_KEY
 
 
 @app.route('/api/ai-status', methods=['GET'])

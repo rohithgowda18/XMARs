@@ -1,6 +1,7 @@
 import re
 import json
 import logging
+import time
 from typing import List, Dict, Optional
 from google import genai
 from groq import Groq
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 # --- SAFETY-CRITICAL CONFIGURATION ---
 
 # 1. Strict Protein/DNA Syntax Regex
-VALID_MUTATION_REGEX = re.compile(r"^(p\.[A-Za-z0-9_*fs]+|c\.[0-9A-Za-z+>\-]+)$")
+VALID_MUTATION_REGEX = re.compile(r"^(p\.[A-Za-z0-9_*fs]+|c\.[0-9A-Za-z+>\-]+|MET_exon14_skipping)$")
 
 # 2. Negation Words (Deterministic Rejection)
 NEGATION_WORDS = [
@@ -20,9 +21,36 @@ NEGATION_WORDS = [
 
 # 3. Invalid Gene Tokens (Noise Filtering)
 INVALID_GENE_TOKENS = {
-    "LOF", "GOF", "MISSENSE", "FRAMESHIFT", "STOP", "VARIANT", 
-    "VAF", "ID", "TMB", "MSI", "STABLE", "HIGH", "LOW", "GAIN", "LOSS"
+    "VARIANT", "DETECTED", "OBSERVED", "APPROX", "NEGATIVE", "MUTATION", 
+    "VAF", "LOSS", "GAIN", "AMPLIFICATION", "FUSION", "MISSENSE", 
+    "FRAMESHIFT", "STABLE", "HIGH", "LOW", "LOF", "GOF", "STOP", "ID", "TMB", "MSI"
 }
+
+# 4. Section-Aware Classification (False Positive Prevention)
+POSITIVE_SECTIONS = [
+    "genomic variants", "somatic - potentially actionable", "somatic - biologically relevant",
+    "pathogenic variants", "clinically significant variants", "actionable mutations",
+    "somatic variants", "alterations", "genomic findings", "biologically relevant variants",
+    "variants of unknown significance"
+]
+
+NEGATIVE_SECTIONS = [
+    "pertinent negatives", "pertinent negative", "no pathogenic", "wild type",
+    "negative for", "no alterations detected", "germline - pathogenic",
+    "genes tested", "genes with no reportable", "not detected",
+    "no clinically significant", "no actionable"
+]
+
+def _classify_section(line: str) -> Optional[str]:
+    """Detect if a line is a section header and classify it."""
+    line_lower = line.lower().strip()
+    for neg in NEGATIVE_SECTIONS:
+        if neg in line_lower:
+            return "negative"
+    for pos in POSITIVE_SECTIONS:
+        if pos in line_lower:
+            return "positive"
+    return None
 
 def normalize_vaf(vaf_raw: str) -> float:
     """Normalize VAF percentage string to 0.0-1.0 decimal."""
@@ -32,47 +60,76 @@ def normalize_vaf(vaf_raw: str) -> float:
     except:
         return 0.0
 
-def extract_mutations(text: str, approved_genes: List[str], gemini_key: str = None, groq_key: str = None) -> List[Dict]:
+def extract_mutations(text: str, approved_genes: List[str], gemini_key: str = None, groq_key: str = None, pdf_file=None) -> List[Dict]:
     """
     STABILIZED EXTRACTION PIPELINE.
-    Priority: Regex -> Groq -> Gemini -> Failure
+    Priority: Regex -> Groq (Llama 3.1) -> Gemini Vision (Fallback) -> Failure
     """
-    if not text:
+    if not text and not pdf_file:
         return []
 
+    candidates = []
+    
     # Layer 1: Regex Extraction (First & Fastest)
     logger.info("Running Layer 1: Regex Extraction...")
-    candidates = _get_regex_candidates(text)
-    if candidates:
-        logger.info(f"Regex extracted {len(candidates)} candidates. Skipping AI providers.")
-    else:
-        # Layer 2: Groq Candidate Extraction (High Speed)
-        if groq_key:
-            logger.info("Running Layer 2: Groq high-speed extraction...")
-            candidates = _get_groq_candidates(text, groq_key)
-            if candidates:
-                logger.info(f"Groq successfully extracted {len(candidates)} candidates.")
-            else:
-                logger.warning("Groq failed to return candidates or errored.")
-        
-        # Layer 3: Gemini Candidate Extraction (Robust Fallback)
-        if not candidates and gemini_key:
-            logger.info("Running Layer 3: Gemini fallback extraction...")
-            candidates = _get_gemini_candidates(text, gemini_key)
-            if candidates:
-                logger.info(f"Gemini successfully extracted {len(candidates)} candidates.")
-            else:
-                logger.warning("Gemini fallback also failed or quota exhausted.")
+    candidates = _get_regex_candidates(text, approved_genes)
+    
+    # Layer 2: Groq Candidate Extraction (High Speed Llama 3.1)
+    if not candidates and groq_key:
+        logger.info("Running Layer 2: Groq extraction (Llama 3.1)...")
+        candidates = _get_groq_candidates(text, groq_key)
+    
+    # Layer 3: Gemini Vision Fallback (For Scanned/Messy PDFs)
+    # Triggered if text is very short OR no mutations found after Layer 2
+    if (not candidates or len(text.strip()) < 200) and gemini_key and pdf_file:
+        logger.warning("Digital extraction weak or missing. Triggering Gemini Vision fallback.")
+        vision_candidates = _get_vision_candidates(pdf_file, gemini_key, approved_genes)
+        if vision_candidates:
+            candidates.extend(vision_candidates)
+            logger.info(f"Gemini Vision extracted {len(vision_candidates)} candidates via OCR-fallback.")
+        else:
+            # Layer 3.5: EasyOCR Backup (Local/Offline Fallback)
+            logger.warning("Gemini Vision failed. Running EasyOCR backup.")
+            try:
+                from .easyocr_parser import extract_text_with_easyocr
+                ocr_text = extract_text_with_easyocr(pdf_file)
+                if ocr_text and len(ocr_text.strip()) > 50:
+                    ocr_candidates = _get_regex_candidates(ocr_text, approved_genes)
+                    if ocr_candidates:
+                        for c in ocr_candidates:
+                            c["extractor"] = "clinical_v4_easyocr_fallback"
+                            c["confidence"] = 0.75
+                        candidates.extend(ocr_candidates)
+                        logger.info(f"EasyOCR successfully extracted {len(ocr_candidates)} candidates.")
+                else:
+                    logger.error("EasyOCR extraction failed to yield meaningful text.")
+            except Exception as ocr_err:
+                logger.error(f"EasyOCR integration error: {ocr_err}")
 
     if not candidates:
         logger.error("All extraction providers failed to find candidates.")
         return []
 
-    # Layer 4: Deterministic Validation (The Authority)
+    # Layer 4: Deterministic Validation & Deduplication
+    # Keep longer mutation if one is prefix of another (e.g. p.R331f vs p.R331fs)
+    cleaned_candidates = []
+    candidates.sort(key=lambda x: len(str(x.get('mutation', ''))), reverse=True)
+    
+    for c in candidates:
+        is_sub = False
+        gene = c.get('gene')
+        mut = str(c.get('mutation', ''))
+        for longer in cleaned_candidates:
+            if longer['gene'] == gene and str(longer['mutation']).startswith(mut):
+                is_sub = True
+                break
+        if not is_sub:
+            cleaned_candidates.append(c)
+            
     validated_records = []
     seen_keys = set()
 
-    for candidate in candidates:
+    for candidate in cleaned_candidates:
         valid_record = _validate_candidate(candidate, approved_genes)
         if valid_record:
             key = f"{valid_record['gene']}_{valid_record['mutation']}"
@@ -84,85 +141,128 @@ def extract_mutations(text: str, approved_genes: List[str], gemini_key: str = No
     logger.info(f"Pipeline Result: {len(validated_records)} validated records from {len(candidates)} candidates.")
     return validated_records
 
-def _get_regex_candidates(text: str) -> List[Dict]:
-    """
-    Robust line-based regex extraction for clinical reports.
-    Supports: 
-    - EGFR mutation detected p.L858R VAF:45.5%
-    - KRAS-p.G12C observed VAF 23.8%
-    - TP53 variant p.R248Q approx VAF: 67.1%
-    """
+def _get_regex_candidates(text: str, approved_genes: List[str]):
     candidates = []
-    
-    # Gene pattern: 2+ uppercase letters/numbers
-    # Mutation pattern: p. or c. notation
-    # VAF pattern: "VAF" followed by optional colon/equals and a number
-    # Structured regex for Gene + Mutation + VAF (named groups)
-    # Supports variations like: KRAS p.G12C ... 23.8%
-    STRUCTURED_REGEX = re.compile(
-        r'(?P<gene>[A-Z][A-Z0-9]+).*?'
-        r'(?P<mutation>p\.[A-Za-z0-9*]+(?:fs)?|c\.[0-9A-Za-z_+\->]+).*?'
-        r'(?P<vaf>\d+(?:\.\d+)?)%',
-        re.IGNORECASE
+
+    # ---------------------------------------------------------------
+    # STRICT ROW-AWARE PATTERNS
+    # Gene must appear on the SAME LINE, CLOSE to the mutation.
+    # This prevents cross-row contamination from OCR table corruption.
+    # ---------------------------------------------------------------
+
+    # Pattern 1: Gene + protein/DNA mutation + VAF% (strict same-row)
+    # e.g. "KRAS p.G12C Missense variant 23.8%"
+    ROW_VAF_REGEX = re.compile(
+        r'\b(?P<gene>[A-Z][A-Z0-9]{1,10})\b'    # gene symbol (2-11 chars, strictly uppercase)
+        r'[^A-Z\n]{1,30}'                       # flexible separator: no uppercase letters, no newlines (max 30 chars proximity)
+        r'(?P<mutation>[pP]\.[A-Za-z0-9_*>]+(?:[fF][sS])?(?:[dD][eE][lL][A-Za-z]*)?|[cC]\.[0-9A-Za-z+>\-]+)'  # mutation
+        r'.*?'                                     # optional description
+        r'(?P<vaf>\d+(?:\.\d+)?)%'                 # VAF percentage
     )
-    
-    lines = text.split('\n')
+
+    # Pattern 2: Gene + protein/DNA mutation without VAF (strict same-row)
+    # e.g. "PTCH1 E1439*" or "KRAS p.G12C"
+    ROW_SIMPLE_REGEX = re.compile(
+        r'\b(?P<gene>[A-Z][A-Z0-9]{1,10})\b'    # gene symbol
+        r'[^A-Z\n]{1,30}'                       # flexible separator: no uppercase letters, no newlines
+        r'(?P<mutation>[pP]\.[A-Za-z0-9_*>]+(?:[fF][sS])?(?:[dD][eE][lL][A-Za-z]*)?|[cC]\.[0-9A-Za-z+>\-]+|[A-Z]\d+[A-Z*](?:[fF][sS])?)\b'
+    )
+
+    # Pattern 3: Structural alterations (same-row)
+    # e.g. "CD274 amplification", "MET exon 14 skipping"
+    ROW_STRUCTURAL_REGEX = re.compile(
+        r'\b(?P<gene>[A-Z][A-Z0-9]{1,10})\b'
+        r'[^A-Z\n]{1,30}'
+        r'(?P<type>(?i:amplification|loss|fusion|exon\s*14\s*skipping|exon\s*14\s*splice|splice\s*site))\b'
+    )
+
+    lines = text.split("\n")
+    current_section = "positive"  # Default: assume positive until a header says otherwise
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
-            
-        matches = list(STRUCTURED_REGEX.finditer(line))
-        
-        if matches:
-            for match in matches:
-                gene = match.group('gene').upper()
-                mutation = match.group('mutation')
-                vaf_raw = match.group('vaf')
-                
-                if gene in INVALID_GENE_TOKENS:
-                    continue
-                    
-                candidate = {
+
+        # Section-awareness: detect section headers
+        section_type = _classify_section(line)
+        if section_type:
+            current_section = section_type
+            logger.info(f"Section detected: '{line.strip()[:60]}' \u2192 {current_section}")
+            continue
+
+        # SKIP all lines inside negative sections
+        if current_section == "negative":
+            continue
+
+        # 1. Structured mutation + VAF (strict same-row)
+        for match in ROW_VAF_REGEX.finditer(line):
+            gene = match.group("gene").upper()
+            mutation = match.group("mutation")
+            vaf = float(match.group("vaf")) / 100
+
+            # Validate gene against approved list
+            if gene not in approved_genes or gene in INVALID_GENE_TOKENS:
+                continue
+
+            candidates.append({
+                "gene": gene,
+                "mutation": mutation,
+                "vaf": round(vaf, 4),
+                "confidence": 0.95,
+                "source_text": line,
+                "source_section": current_section
+            })
+
+        # 2. Simple mutation without VAF (strict same-row)
+        for match in ROW_SIMPLE_REGEX.finditer(line):
+            gene = match.group("gene").upper()
+            mutation = match.group("mutation")
+
+            if gene not in approved_genes or gene in INVALID_GENE_TOKENS:
+                continue
+
+            mutation_str = f"p.{mutation}" if not mutation.startswith(("p.", "c.")) else mutation
+            # Deduplicate against VAF-pattern matches
+            exists = any(c["gene"] == gene and c["mutation"] == mutation_str for c in candidates)
+            if not exists:
+                candidates.append({
                     "gene": gene,
-                    "mutation": mutation,
-                    "vaf": normalize_vaf(vaf_raw),
-                    "source_text": line
-                }
-                logger.info(f"Structured Regex candidate: {candidate}")
-                candidates.append(candidate)
-        else:
-            # Fallback for lines without explicit VAF percentage
-            # (e.g. summary blocks where VAF is in a different section)
-            potential_genes = re.findall(r"\b([A-Z][A-Z0-9]+)\b", line)
-            mutations = re.findall(r"(p\.[A-Za-z0-9_*fs]+|c\.[0-9A-Za-z+>\-]+)", line)
-            
-            for mutation in mutations:
-                mutation_index = line.find(mutation)
-                prefix = line[:mutation_index].strip()
-                tokens = re.findall(r"\b([A-Z][A-Z0-9]+)\b", prefix)
-                
-                gene = None
-                if tokens:
-                    for t in reversed(tokens):
-                        if t.upper() not in INVALID_GENE_TOKENS:
-                            gene = t.upper()
-                            break
-                if gene:
-                    candidate = {
-                        "gene": gene,
-                        "mutation": mutation,
-                        "vaf": 0.0, # Default if not in structured pattern
-                        "source_text": line
-                    }
-                    logger.info(f"Fallback Regex candidate: {candidate}")
-                    candidates.append(candidate)
-    
+                    "mutation": mutation_str,
+                    "vaf": 0.5,
+                    "confidence": 0.60,
+                    "source_text": line,
+                    "source_section": current_section
+                })
+
+        # 3. Structural Alterations (strict same-row)
+        for match in ROW_STRUCTURAL_REGEX.finditer(line):
+            gene = match.group("gene").upper()
+            alt_type = match.group("type").lower()
+
+            if gene not in approved_genes or gene in INVALID_GENE_TOKENS:
+                continue
+
+            if "exon" in alt_type and ("14" in alt_type or "splice" in alt_type):
+                mutation_str = "exon14_skipping"
+            else:
+                mutation_str = alt_type.replace(" ", "_")
+
+            candidates.append({
+                "gene": gene,
+                "mutation": mutation_str,
+                "vaf": None,
+                "requires_manual_vaf": True,
+                "confidence": 0.90,
+                "source_text": line,
+                "source_section": current_section
+            })
+
     return candidates
 
 def _get_groq_candidates(text: str, api_key: str) -> List[Dict]:
     """
-    Groq (Llama-3) acting as the high-speed extraction engine.
+    Groq (Llama 3.1) acting as the high-speed extraction engine.
     """
     try:
         client = Groq(api_key=api_key)
@@ -185,13 +285,12 @@ def _get_groq_candidates(text: str, api_key: str) -> List[Dict]:
         {text[:10000]}
         """
         
-        # Using llama3-8b-8192 as requested for speed and accessibility
         chat_completion = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a clinical extraction tool that outputs JSON."},
                 {"role": "user", "content": prompt}
             ],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             response_format={"type": "json_object"}
         )
         
@@ -203,81 +302,82 @@ def _get_groq_candidates(text: str, api_key: str) -> List[Dict]:
         logger.warning(f"Groq candidate extraction failed: {e}")
         return []
 
-def _get_gemini_candidates(text: str, api_key: str) -> List[Dict]:
+def _get_vision_candidates(pdf_file, api_key: str, approved_genes: List[str]) -> List[Dict]:
     """
-    Gemini acting as the robust fallback extraction engine.
+    Gemini Vision acting as a high-fidelity Genomic OCR engine.
     """
     try:
+        from .pdf_parser import convert_pdf_to_images
+        logger.info("Converting PDF pages to images for vision fallback")
+        images = convert_pdf_to_images(pdf_file)
+        if not images:
+            return []
+
         client = genai.Client(api_key=api_key)
+        # Safety Cooldown to prevent quota hits
+        logger.info("Applying 5s safety cooldown for Gemini Vision...")
+        time.sleep(5)
         
-        prompt = f"""
-        You are a clinical genomics extraction tool.
-        Extract ONLY explicit mutation records from the pathology report text.
+        prompt = """
+        You are a clinical genomics extraction system.
+        Visually read the report image and extract ALL clinically relevant genomic findings as clean structured plain text.
 
-        RULES:
-        - Extract: "gene" (HGNC symbol), "mutation" (protein syntax like p.G12C), and "vaf" (0-1).
-        - Provide the exact "source_text" for audit.
-        - NEVER guess a VAF if missing.
-        - IGNORE negative results, tested gene lists, and disclaimers.
-        - Return ONLY valid JSON.
+        STRICT RULES:
+        1. Extract ONLY text actually visible.
+        2. NEVER hallucinate genes, mutations, or VAF values.
+        3. Preserve mutation syntax EXACTLY (e.g., p.G12C, p.R331fs).
+        4. Preserve VAF percentages EXACTLY as written (e.g., 23.8%).
+        5. Ignore non-medical noise (logos, footers).
+        6. Return ONLY clean extracted plain text. ONE mutation per line.
+        7. Do NOT generate JSON.
 
-        JSON SCHEMA:
-        {{ "mutations": [ {{"gene": "KRAS", "mutation": "p.G12C", "vaf": 0.238, "source_text": "KRAS p.G12C VAF: 23.8%"}} ] }}
-
-        REPORT TEXT:
-        {text[:10000]}
+        FOCUS ON: Genomic Variants, Somatic Variants, Actionable Mutations, VAF, Fusions.
         """
         
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=prompt
+            contents=[prompt, *images]
         )
         
-        raw_output = response.text
-        clean_json = re.sub(r'```json\s*|\s*```', '', raw_output).strip()
-        data = json.loads(clean_json)
-        return data.get("mutations", [])
+        vision_text = response.text
+        logger.info(f"Gemini Vision OCR extracted {len(vision_text)} characters of text.")
+        
+        results = _get_regex_candidates(vision_text, approved_genes)
+        
+        for r in results:
+            r["extractor"] = "clinical_v4_vision_ocr"
+            r["confidence"] = 0.85
+            
+        return results
         
     except Exception as e:
-        logger.error(f"Gemini candidate extraction failed: {e}")
+        logger.error(f"Gemini Vision OCR fallback failed: {e}")
         return []
 
 def _validate_candidate(c: Dict, approved_genes: List[str]) -> Optional[Dict]:
     """
     Deterministic Safety Layer. 
-    This function has the final authority to reject AI hallucinations.
     """
     try:
-        # 1. Clean and Normalize
         gene = str(c.get("gene", "")).upper().strip()
         mutation = str(c.get("mutation", "")).strip()
         vaf_raw = c.get("vaf")
         vaf = float(vaf_raw) if vaf_raw is not None else 0.0
         source_text = str(c.get("source_text", "")).lower()
 
-        # 2. Gene Authorization Check (Stage 4 - Validation)
-        # Instead of strict rejection, we now allow common clinical genes
-        # but mark if they are "out of scope" for our specific drug-gene models.
         is_known = gene in approved_genes
+        structural_types = ["amplification", "loss", "fusion", "exon14_skipping", "splice_site"]
+        is_structural = mutation.lower() in structural_types
         
-        # We allow all valid gene symbols, but log if they are experimental/outside core panel
-        if not is_known:
-            # Minimum safety: Must at least look like a gene (handled by regex) 
-            # and not be a noise word (handled by candidate extraction)
-            logger.info(f"Clinical Audit: Processing mutation for gene '{gene}' (outside core validated panel).")
-        
-        # 3. Protein/DNA Syntax Check
-        if not VALID_MUTATION_REGEX.match(mutation):
+        if not is_structural and not VALID_MUTATION_REGEX.match(mutation):
             logger.debug(f"❌ Validation Reject: Mutation {mutation} fails syntax regex.")
             return None
         
-        # 4. VAF Range Check
-        # We allow VAF to be 0.0 (missing) but it must not exceed 1.0
-        if not (0 <= vaf <= 1.0):
-            logger.debug(f"❌ Validation Reject: VAF {vaf} out of bounds.")
-            return None
+        if vaf_raw is not None:
+            if not (0 <= vaf <= 1.0):
+                logger.debug(f"❌ Validation Reject: VAF {vaf} out of bounds.")
+                return None
         
-        # 5. Negation Detection Check
         if any(word in source_text for word in NEGATION_WORDS):
             matching_negation = [w for w in NEGATION_WORDS if w in source_text]
             logger.warning(f"❌ Validation Reject: Negation {matching_negation} detected in: '{source_text}'")
@@ -286,10 +386,12 @@ def _validate_candidate(c: Dict, approved_genes: List[str]) -> Optional[Dict]:
         return {
             "gene": gene,
             "mutation": mutation,
-            "vaf": round(vaf, 4) if vaf else 0.0,
+            "vaf": round(vaf, 4) if vaf_raw is not None else None,
+            "requires_manual_vaf": c.get("requires_manual_vaf", False),
+            "confidence": c.get("confidence", 0.50),
             "validated": True,
             "is_core_panel": is_known,
-            "extractor": "clinical_tempus_v3"
+            "extractor": c.get("extractor", "clinical_v4_foundation_ready")
         }
     except Exception as e:
         logger.debug(f"Validation Error: {e}")
