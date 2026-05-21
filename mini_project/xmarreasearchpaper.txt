@@ -1,0 +1,198 @@
+Type of the Paper : Atricle
+XMARs: An Explainable Multi-Agent Reasoning System for Real-Time Drug Resistance Prediction in Non-Small Cell Lung Cancer
+Dr. S. Seema 1, Rohith Gowda K 2, Venkatachala V 3 , Vijay Patil 4  and Vijay Veerabhadra Patil 5
+Affiliation: 1Ramaiah Institute of Technology, Department of Computer Science and Engineering, Bengaluru, Karnataka,  India; seema.s@msrit.edu 
+2Ramaiah Institute of Technology, Department of Computer Science and Engineering, Bengaluru, Karnataka,  India; 1ms23cs154@msrit.edu 
+3Ramaiah Institute of Technology, Department of Computer Science and Engineering, Bengaluru, Karnataka,  India; 1ms23cs211@msrit.edu
+4Ramaiah Institute of Technology, Department of Computer Science and Engineering, Bengaluru, Karnataka,  India; 1ms23cs212@msrit.edu
+5Ramaiah Institute of Technology, Department of Computer Science and Engineering, Bengaluru, Karnataka,  India; 1ms23cs213@msrit.edu
+
+Abstract: 
+Introduction: Non-Small Cell Lung Cancer (NSCLC) is one of the top causes of cancer deaths around the world. A big challenge in targeted therapy is the drug resistance that arises from complex genetic mutations, including changes in EGFR, KRAS, ALK, and MET. Current prediction systems often work like black boxes. They do not provide clear clinical reasoning or explain mutations in detail.
+
+Materials and Methods: XMARs is a clear multi-agent artificial intelligence framework meant for predicting drug resistance in NSCLC. The system combines Random Forest and XGBoost models with SHAP-based explainability, biological pathway analysis, and multi-agent reasoning. We preprocessed genomic mutation datasets from GDSC2 and cBioPortal TCGA-LUAD/LUSC for training and evaluation. CrewAI-based agents work together to conduct mutation analysis, interpret pathways, rank therapies, and generate clinical reports.
+
+Results: The proposed framework can predict resistance probabilities for several targeted therapies. It also identifies how specific mutations contribute to resistance. SHAP analysis helps explain the results by showing important driver mutations. The multi-agent pipeline offers clear reasoning and ranks therapy recommendations through an interactive dashboard.
+
+Conclusions: XMARs demonstrates the potential of combining explainable machine learning with multi-agent AI systems for transparent oncology decision support. In practice it boosts interpretability, helps with customized therapy selection, and it gives a scalable base for upcoming precision medicine tasks in cancer care.
+
+Keywords: Non-Small Cell Lung Cancer (NSCLC) 1; Drug Resistance Prediction 2; Explainable Artificial Intelligence (XAI) 3; Multi-Agent AI Systems 4; SHAP Explainability 5; 
+
+Citation: Dr. S. Seema, Rohith Gowda K, Venkatachala V, Vijay Patil, and Vijay Veerabhadra Patil, “XMARs: An Explainable Multi-Agent Reasoning System for Real-Time Drug Resistance Prediction in Non-Small Cell Lung Cancer,” Department of Computer Science and Engineering, Ramaiah Institute of Technology, 2026.
+
+1. Introduction
+Non-Small Cell Lung Cancer (NSCLC) makes up almost 85% of all lung cancer cases, and it’s still one of the main drivers of cancer-related deaths around the world [1]. Even though targeted therapies have made outcomes noticeably better, drug resistance remains a major challenge in precision oncology. Genetic changes like EGFR, KRAS, ALK, and MET can reshape cellular signaling routes and lower how well targeted drugs work, later on [2]. So, a lot of people see disease progression even after an early, seemingly good, response to treatment.
+In the last few years artificial intelligence (AI) and machine learning (ML) have made it possible to build predictive models for cancer detection, biomarker discovery, and therapy response assessment [3]. These approaches can handle big genomic datasets and identify resistance-associated genomic patterns. Still, many existing AI models behave like black boxes, meaning they output a decision, but do not provide transparent biological interpretation. That missing clarity makes clinicians less confident, and it slows down real-world adoption in healthcare settings.
+ Explainable Artificial Intelligence (XAI) techniques such as SHAP help with interpretability, by estimating how each genomic feature contributes to the final prediction [4]. Meanwhile multi-agent AI systems have become a strong method for group reasoning, and for coordinating tasks in complicated decision spaces. But, even with all these advances, today’s oncology AI tools often skip the mutation-level explanations, pathway interpretation, drug ranking, and also the kind of transparent multi-agent reasoning, all in one connected framework. 
+To deal with these limitations, this work proposes XMARs, an Explainable Multi-Agent Reasoning System for real-time drug resistance prediction in NSCLC. The proposed framework integrates machine learning based resistance prediction with SHAP explainability, biological pathway interpretation, and multi-agent AI reasoning, so it can support more transparent and also personalized therapy recommendations. The goal here is to help improve clinical interpretability, aid oncologists with treatment choice, and lay down a scalable base for later precision oncology uses.
+
+
+
+
+2.Materials and Methods
+2.1. Data Collection
+The genomic mutation and drug response datasets involved in this work were gathered from publicly available cancer research repositories including, including the Genomics of Drug Sensitivity in Cancer (GDSC2) database which is hosted via the CancerRxGene platform, plus resources from the Wellcome Sanger Institute, and also cBioPortal TCGA-LUAD/LUSC datasets backed by The Cancer Genome Atlas (TCGA) program. The collected datasets contained mutation profiles for key NSCLC gene groups like EGFR , KRAS, ALK, MET, TP53, and BRAF . For the learning part, we relied on drug sensitivity labels that match targeted therapies, and these were used both to train the models and also to check performance.
+2.2. Data Preprocessing
+The raw genomic datasets were preprocessed, but mostly to improve the overall data quality and the downstream model performance. When any values were missing, they were handled using statistical imputation techniques with reasonable estimates. For the categorical mutation labels, the transformation step used one hot encoding techniques, to convert categorical labels into numerical representations. For continuous mutation related attributes, for example the Variant Allele Frequency (VAF) values, normalization was done with Min-Max scaling, to standardize feature scaling. After that, the cleaned and reshaped data was turned into structured feature vectors, suitable for machine learning classification.
+2.3. Machine learning models
+Drug resistance prediction was performed using Random Forest and XGBoost classifiers in Python[7]. The Random Forest model used 200 estimators with a maximum depth of 10, and then Stratified 5-fold cross validation was run, to evaluate model performance. Performance was judged using Accuracy, Area Under Curve (AUC), Precision , Recall and F1-score, across multiple evaluation metrics. After that, the top model was selected for downstream inference and explainability analysis.
+2.4. Explainable Artificial Intelligence (XAI)
+To raise interpretability a bit more, the SHAP (SHapley Additive exPlanations) TreeExplainer component was integrated into the prediction workflow[4]. SHAP values were calculated for every genomic mutation feature, to identify feature-level contributions toward resistance prediction, the resistance prediction. For a clearer sense, waterfall visualizations and beeswarm plots were produced, plus some feature importance diagrams too. These outputs were meant to support mutation-level explainability and to make clinical reasoning feel more transparent, for improved clinical interpretability
+2.5. Multi-Agent Framework
+The suggested XMARs framework relies on a multi agent architecture, which is built with CrewAI and LangChain[8]. In the pipeline, four focused agents team up and handle different jobs, but still sequentially: 
+Mutation Analyst Agent: figures out key driver mutations using SHAP analysis, and it highlights what matters most.
+Pathway Specialist Agent: takes those mutations and assigns them to biological pathways such as MAPK and PI3K-AKT, for biological pathway interpretation.
+Drug Strategist Agent: estimates resistance likelihood and then sorts targeted therapies, based on the predictions it makes.
+Clinical Advisor Agent: takes the results from everyone, then crafts human readable clinical narratives with the Gemini API.
+ Overall, these agents share information in a step-by-step manner, so the oncology decision support stays transparent, and also easier to explain.
+2.6. System Implementation
+The backend system was developed built with Python 3.10, using Flask APIs for model inference and also for coordinating the agent orchestration side of things. Gradio served as the interactive dashboard layer, so the app can show prediction results, SHAP visualizations and therapy rankings in one place. For preparing the input data, Pandas and NumPy were used. Then for visualization, Matplotlib together with Plotly handled the charts and displays.
+2.7. Ethics Statement
+This study relied on openly available drug-response datasets sourced from GDSC2 and cBioPortal. There was no direct human participation, no patient recruitment, and no identifiable clinical information included in what we did. Because of that kind of setup, ethical approval, as well as informed consent, were not needed for this study.
+3. Results
+3.1. Drug Resistance Prediction Performance
+The proposed XMARs framework was evaluated using NSCLC genomic mutation datasets collected from the GDSC2 and cBioPortal TCGA-LUAD/LUSC repositories. The system was trained to predict resistance patterns across multiple targeted therapies using both Random Forest and XGBoost classifiers. To ensure balanced model evaluation and reduce overfitting, stratified 5-fold cross-validation was applied during the training and testing phases.
+Among the evaluated models, XGBoost demonstrated slightly better predictive performance than the Random Forest classifier across most evaluation metrics. The ensemble pipeline further improved the overall classification results, achieving an accuracy of 85.1% and an AUC score of 0.82. These findings indicate that ensemble-based learning methods are effective for identifying mutation-associated resistance patterns in NSCLC datasets, consistent with previous machine learning studies in cancer prediction systems [3,7]. 
+Table 1 summarizes the overall performance of the proposed models.
+Table 1. Performance Metrics of Drug Resistance Prediction Models
+Model
+Accuracy (%)
+Precision
+Recall
+F1-Score
+AUC
+Random Forest
+81.6
+0.80
+0.79
+0.79
+0.81
+XGBoost
+84.2
+0.83
+0.82
+0.82
+0.84
+Ensemble Pipeline
+85.1
+0.84
+0.83
+0.83
+0.82
+The results also suggest that the selected genomic features, including EGFR, KRAS, ALK, and MET mutations, successfully captured clinically meaningful resistance-related signals associated with targeted therapy response in NSCLC patients [1,2]. 
+3.2. SHAP-Based Mutation Explainability
+To improve interpretability, SHAP (SHapley Additive exPlanations) analysis was integrated into the prediction workflow. SHAP values were calculated for each genomic mutation feature to measure its contribution toward drug resistance prediction. The explainability analysis revealed that mutations associated with EGFR, KRAS, ALK, and MET had the strongest influence on therapy resistance predictions. These findings align with earlier studies highlighting the clinical importance of these mutations in NSCLC progression and targeted therapy response [1,2,4]. 
+Figure 1 shows the SHAP derived feature importance scores for the main NSCLC mutation features.
+Figure 1. SHAP Feature Importance for Major NSCLC Mutations.
+
+
+
+
+
+
+
+
+Figure 2. SHAP Explainability.
+
+
+
+
+
+
+
+The SHAP explainability module also showed that coding status and Variant Allele Frequency (VAF) contributed significantly to resistance prediction outcomes. Positive SHAP values generally increased the probability of resistance, whereas negative values were associated with therapy sensitivity. By exposing mutation-level contributions, the explainability framework improved transparency and helped provide biologically interpretable reasoning behind model predictions [4].
+3.3. Driver Mutation Analysis
+The proposed framework successfully identified biologically relevant driver mutations associated with therapy resistance in NSCLC. Mutations categorized as nonsense and frameshift variants demonstrated higher feature importance scores compared to silent mutations, suggesting that the model effectively learned clinically meaningful genomic patterns from the training data.
+Table 2 presents the most influential mutation-related features identified through SHAP analysis.
+Table 2. Important Features Identified Through SHAP Analysis
+Feature
+Importance Score
+Coding Status
+0.57
+Gene Identity
+0.14
+Variant Allele Frequency (VAF)
+0.10
+Mutation Type
+0.08
+The SHAP analysis identified coding status, gene identity, Variant Allele Frequency (VAF), and mutation type as the most influential features contributing to resistance prediction. These observations are consistent with previous genomic studies reporting that disruptive mutation patterns often contribute to resistance development in targeted cancer therapies [1,2]. 3.4. Comparative Multi-Drug Resistance Analysis
+To evaluate therapy effectiveness across multiple drugs, the same mutation profile was analyzed against several NSCLC-targeted therapies, including Osimertinib, Erlotinib, Gefitinib, Crizotinib, and Alectinib. The system generated resistance probabilities and sensitivity scores for each therapy, allowing direct comparison between different treatment strategies.
+Table 3 presents the predicted resistance probabilities across different therapies.
+Table 3. Comparative Drug Resistance Prediction Results
+Drug
+Resistance Probability
+Sensitivity Score
+Osimertinib
+0.18
+0.82
+Erlotinib
+0.31
+0.69
+Gefitinib
+0.42
+0.58
+Crizotinib
+0.24
+0.76
+Alectinib
+0.16
+0.84
+Among the evaluated therapies, Alectinib and Osimertinib demonstrated the highest predicted sensitivity scores, whereas Gefitinib showed comparatively higher resistance probability. These results demonstrate the ability of the proposed framework to support comparative therapy ranking and personalized treatment selection in precision oncology environments [1,5]. 
+3.5. Multi-Agent Clinical Reasoning
+The CrewAI-based multi-agent architecture enabled transparent and structured clinical reasoning throughout the prediction process. Each agent performed a dedicated task within the workflow. The Mutation Analyst Agent identified key genomic alterations using SHAP analysis, while the Pathway Specialist Agent mapped these mutations to important biological signaling pathways such as MAPK and PI3K-AKT. The Drug Strategist Agent ranked therapies based on predicted resistance probabilities, and the Clinical Advisor Agent generated interpretable clinical summaries using the Gemini API. 
+Figure 3 illustrates the collaborative reasoning workflow of the proposed multi-agent framework.
+Figure 3. Multi-Agent Reasoning Workflow of the XMARs Framework. 
+Figure 4. Clinical report generated by the AI agent.
+
+
+This collaborative reasoning workflow improved explainability by exposing intermediate decision-making steps and mutation-level interpretations during prediction generation. The integration of multi-agent reasoning with explainable AI provided a more transparent oncology decision-support system compared to conventional black-box prediction  approaches [3,4,8].
+3.6. Dashboard Visualization
+An interactive dashboard was developed using Gradio to display mutation analysis, SHAP explanations, therapy rankings, and AI-generated clinical summaries in real time. The dashboard enabled users to compare therapy responses and visualize mutation contributions through a single integrated interface.
+Figure 5 presents the web-based XMARs dashboard used for prediction and explainability analysis.
+Figure 5. Interactive XMARs Dashboard for Drug Resistance Analysis.
+Figure 6. Mutations extracted from the uploaded patient profile.
+Figure 7. Top 10 suitable drugs suggested to the patient.
+
+Figure 8. Dashboard showing affected pathways.
+The visualization framework improved usability by presenting complex genomic insights and prediction outputs in a more accessible and clinically interpretable format. This integration demonstrates how explainable AI systems can enhance clinical transparency and support real-time oncology decision-making workflows [3,4]. 
+4. Discussion
+This study presented XMARs, an explainable multi-agent reasoning framework designed for real-time drug resistance prediction in Non-Small Cell Lung Cancer (NSCLC). The framework combines machine learning-based resistance prediction with SHAP explainability, biological pathway interpretation, and collaborative multi-agent reasoning within a unified oncology decision-support pipeline. Unlike conventional black-box prediction systems, XMARs provides mutation-level interpretability and transparent intermediate reasoning, making the prediction process more understandable and clinically meaningful. 
+The experimental results demonstrated that ensemble learning models, particularly XGBoost and the ensemble prediction pipeline, achieved strong classification performance in predicting therapy resistance patterns from genomic mutation data. The observed predictive accuracy indicates that the selected genomic features successfully captured clinically relevant resistance-associated signals. These findings are consistent with earlier studies showing the effectiveness of machine learning approaches for cancer biomarker discovery and therapy response prediction [3,7]. 
+A major contribution of this work lies in the integration of explainable AI into the prediction framework. The SHAP-based explainability module enabled identification of influential mutation features such as EGFR, KRAS, ALK, and MET, which are already known to play important roles in NSCLC progression and targeted therapy resistance [1,2]. By quantifying feature-level contributions, the framework improved transparency and allowed clinicians to better understand the biological reasoning behind prediction outcomes. This level of interpretability is particularly important in healthcare applications where trust and explainability are essential for clinical adoption [4]. 
+Another significant aspect of the proposed framework is the multi-agent reasoning architecture developed using CrewAI and LangChain. Instead of relying on a single prediction engine, the system distributes specialized tasks among dedicated agents responsible for mutation analysis, pathway interpretation, therapy ranking, and clinical report generation. This collaborative workflow improves transparency by exposing intermediate reasoning steps and biological interpretations throughout the decision-making process. The multi-agent design also increases scalability and flexibility, allowing future integration of additional biomedical reasoning modules [8]. 
+The comparative multi-drug resistance analysis further highlighted the practical relevance of the framework in precision oncology. By simultaneously evaluating multiple targeted therapies against the same mutation profile, the system provided interpretable therapy rankings and resistance probability estimates. The higher predicted sensitivity observed for therapies such as Alectinib and Osimertinib demonstrates the potential of AI-assisted systems to support personalized treatment planning and comparative therapeutic assessment [5]. 
+Despite its contributions, the framework still has certain limitations. The study primarily relied on publicly available NSCLC genomic datasets and selected targeted therapies, which may not fully represent the complexity and diversity of real-world clinical populations. In addition, the current framework focuses mainly on mutation-level genomic features and does not yet integrate other important biological signals such as transcriptomics, proteomics, radiomics, or longitudinal patient history. These multimodal factors can significantly influence therapy response and disease progression. Future validation on larger clinical cohorts and integration of multi-omics datasets would improve the robustness, generalizability, and clinical applicability of the framework. 
+5. Conclusions
+This study introduced XMARs, an explainable multi-agent reasoning framework developed for real-time drug resistance prediction in Non-Small Cell Lung Cancer (NSCLC). The proposed system integrates machine learning-based prediction, SHAP explainability, biological pathway interpretation, and collaborative multi-agent reasoning into a unified and transparent oncology decision-support pipeline. By combining predictive performance with interpretable clinical reasoning, the framework addresses several limitations commonly associated with traditional black-box AI models used in healthcare. 
+The experimental findings demonstrated that the proposed framework can effectively identify mutation-driven resistance patterns and generate interpretable therapy recommendations across multiple targeted treatments. The integration of SHAP explainability enabled mutation-level transparency, while the multi-agent architecture improved reasoning clarity by exposing intermediate analytical steps during prediction generation. Together, these capabilities enhance clinical interpretability and support more personalized treatment planning within precision oncology environments [3,4]. 
+The comparative therapy analysis further demonstrated the practical utility of the system by enabling simultaneous evaluation of multiple targeted therapies against the same genomic mutation profile. The interactive Gradio-based dashboard also improved accessibility by presenting genomic insights, resistance probabilities, pathway interpretations, and AI-generated clinical summaries in an understandable and clinically usable format. 
+Although the current implementation is limited to publicly available NSCLC datasets and selected targeted therapies, the framework provides a strong foundation for future research in interpretable cancer informatics and AI-assisted clinical decision support. Future work may focus on incorporating multi-omics data, validating the framework on larger real-world clinical cohorts, and extending the architecture to additional cancer types and personalized medicine applications. 
+Overall, XMARs highlights the potential of explainable multi-agent AI systems to improve transparency, interpretability, and trustworthiness in precision oncology. The framework demonstrates how AI can move beyond prediction accuracy alone and contribute toward clinically meaningful, explainable, and scalable healthcare decision-support systems. Top of Form
+
+Bottom of Form
+Patents (optional): No patent filings, or in other words patents that have been granted, came out of the work in this study presented here.
+Acknowledgments: The authors acknowledge the Genomics of Drug Sensitivity in Cancer (GDSC2) project, the CancerRxGene platform, the Welcome Sanger Institute, and cBioPortal, for making available genomic and drug-response datasets that were used in this study. The authors also thank the Department of Computer Science and Engineering at Ramaiah Institute of Technology, for academic guidance and technical support throughout this research work.
+Funding: There are no sources of funding to declare.
+Author contributions: Conceptualization, Dr. S. Seema and Rohith Gowda K.; methodology, Rohith Gowda K., Venkatachala V., and Vijay Patil; software, Rohith Gowda K., Venkatachala V., Vijay Patil and Vijay Veerabhadra Patil; validation, Dr. S. Seema, Rohith Gowda K., and Venkatachala V.; formal analysis, Rohith Gowda K. and Vijay Patil; investigation, Rohith Gowda K.; resources, Dr. S. Seema; data curation, Venkatachala V. and Vijay Veerabhadra Patil; writing—original draft preparation, Rohith Gowda K., Venkatachala V., and Vijay Patil; writing—review and editing, Dr. S. Seema and Vijay Veerabhadra Patil; visualization, Vijay Patil and Vijay Veerabhadra Patil; supervision,  Dr. S. Seema; project administration, Dr.  S. Seema; funding acquisition, Not applicable. All authors  have read and agreed, to the published version of the manuscript.
+Conflict of interest: The authors declare no conflict of interest.
+Data availability statement: The datasets in this study were pulled from publicly available repositories, such as the GDSC2 database and the cBioPortal collections for TCGA-LUAD/LUSC. The material that supports the results in this work is listed inside the article, or it can be obtained from the relevant public repositories by contacting the corresponding source on request.
+Institutional review board statement: Not applicable.
+Informed consent statement: Not applicable.
+Sample availability: The authors declare that no physical samples were used in this study.
+Supplementary materials: Supplementary materials include more SHAP visualizations, ROC curves, confusion matrices, plus dashboard screenshots and comparative drug resistance analysis charts that back up the results discussed in this paper. These supplementary materials can be obtained upon request, or they will be shared via the repository link connected with the final published version of the manuscript.
+Additional information
+Received: YYYY-MM-DD
+Accepted: YYYY-MM-DD
+Published: YYYY-MM-DD
+References: 
+[1] Duma N, Santana-Davila R, Molina JR. Non-small cell lung cancer: epidemiology, screening, diagnosis, and treatment. Mayo Clin Proc. 2019;94(8):1623–1640.
+[2] Kocher F, Hilbe W, Seeber A, et al. Longitudinal analysis of 2293 NSCLC patients: A comprehensive study from the TYROL registry. Lung Cancer. 2015;87(2):193–200.
+[3] Dwivedi K, Rajpal A, Rajpal S, et al. An explainable AI-driven biomarker discovery framework for Non-Small Cell Lung Cancer classification. Comput Biol Med. 2023;158:106544.
+[4] Lundberg SM, Lee SI. A unified approach to interpreting model predictions. Adv Neural Inf Process Syst. 2017;30:4765–4774.
+[5] Yang W, Soares J, Greninger P, et al. Genomics of Drug Sensitivity in Cancer (GDSC): a resource for therapeutic biomarker discovery in cancer cells. Nucleic Acids Res. 2013;41(Database issue):D955–D961.
+[6] Cerami E, Gao J, Dogrusoz U, et al. The cBio Cancer Genomics Portal: an open platform for exploring multidimensional cancer genomics data. Cancer Discov. 2012;2(5):401–404.
+[7] Chen T, Guestrin C. XGBoost: A scalable tree boosting system. Proc ACM SIGKDD Int Conf Knowl Discov Data Min. 2016:785–794.
+[8] Chase H. LangChain: Building applications with LLMs through composability. 2023. Accessed 2026. https://github.com/langchain-ai/langchain
+
+Publisher’s note: Academia.edu Journals stays neutral regarding jurisdictional claims in published maps and institutional affiliations. All claims expressed in this article are solely those of the authors and do not necessarily represent those of their affiliated organizations, or those of the publisher, the editors, and the reviewers. Any product that may be evaluated in this article, or claim that may be made by its manufacturer, is not guaranteed or endorsed by the publisher.
+Copyright: © 2026 copyright by the authors. This article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license (https:// creativecommons.org/licenses/by/4.0/).
