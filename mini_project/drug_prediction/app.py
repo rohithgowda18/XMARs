@@ -261,12 +261,30 @@ def predict_ai():
         if not mutations:
             return jsonify({'error': 'At least one mutation is required'}), 400
 
-        # Import and run the real agent pipeline
+        # Import and run the real agent pipeline with retry on Gemini rate limits
         from agents import AgentPipeline
         pipeline = AgentPipeline(api_key=GEMINI_API_KEY)
-        result = pipeline.run(mutations)
 
-        return jsonify(result)
+        max_attempts = 3
+        backoff = 5  # seconds
+        for attempt in range(1, max_attempts + 1):
+            try:
+                result = pipeline.run(mutations)
+                return jsonify(result)
+            except Exception as e:
+                # Detect Gemini rate limit (429) in exception message
+                if '429' in str(e):
+                    logger.warning(f"Gemini rate limited on attempt {attempt}: {e}")
+                    if attempt < max_attempts:
+                        import time
+                        time.sleep(backoff)
+                        backoff *= 2
+                        continue
+                    else:
+                        return jsonify({'error': 'Gemini API rate limit exceeded. Please try again later.'}), 429
+                else:
+                    raise
+
 
     except Exception as e:
         logger.error(f"AI pipeline error: {str(e)}")
@@ -346,7 +364,15 @@ def shap_explain():
             'genes': [m['gene'] for m in mutations],
         })
 
+    except ValueError as ve:
+        # Handles ambiguous truth-value errors from NumPy/shap
+        logger.error(f"SHAP ValueError: {ve}")
+        return jsonify({'error': 'SHAP computation failed', 'detail': str(ve)}), 500
     except Exception as e:
+        logger.error(f"SHAP error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
         logger.error(f"SHAP error: {str(e)}")
         import traceback
         traceback.print_exc()

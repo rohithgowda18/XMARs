@@ -699,22 +699,26 @@ Use the actual numbers and drug names from the data above."""
 
         client = genai.Client(api_key=api_key)
 
-        # Modern Generation Call (Gemini 2.0 Flash)
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config={
-                    "temperature": 0.3,
-                    "max_output_tokens": 2048,
-                }
-            )
-            logger.info("Gemini explanation generated using gemini-2.0-flash")
-            return response.text
-        except Exception as e:
-            logger.error(f"Gemini error with gemini-2.0-flash: {e}")
-            return None
-        logger.warning("Gemini model failed, falling back to structured report")
+        # Try compatible models in sequence (matching the log statement)
+        models_to_try = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={
+                        "temperature": 0.3,
+                        "max_output_tokens": 2048,
+                    }
+                )
+                logger.info(f"Gemini explanation generated successfully using {model_name}")
+                return response.text
+            except Exception as e:
+                logger.warning(f"Failed to generate explanation with {model_name}: {e}")
+                # Continue to next model if we hit rate limits or model not found errors
+                continue
+
+        logger.error("All Gemini models failed to generate clinical explanation. Falling back to structured report.")
         return None
 
     def _generate_fallback_report(self, structured_report: Dict) -> str:
