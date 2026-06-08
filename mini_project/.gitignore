@@ -78,8 +78,10 @@ desktop.ini
 !**/models/*.json
 
 # KEEP specific necessary data files (if small and required for app)
-!mini project/data/processed/encoders/*.pkl
-!mini project/MUTATION/data/processed/encoders/*.pkl
+!data/processed/encoders/
+!data/processed/encoders/*.pkl
+!MUTATION/data/processed/encoders/
+!MUTATION/data/processed/encoders/*.pkl
 
 # KEEP source and docs
 !*.py

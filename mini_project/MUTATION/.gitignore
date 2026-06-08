@@ -47,6 +47,12 @@ models/
 *.joblib
 *.csv.gz
 
+# Whitelist models and encoders
+!models/
+!models/*.pkl
+!data/processed/encoders/
+!data/processed/encoders/*.pkl
+
 # Output artifacts
 output/*.txt
 figures/*.png
