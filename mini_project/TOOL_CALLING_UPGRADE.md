@@ -26,6 +26,8 @@ existing deterministic XMARs pipeline and legacy tool executor.
   function-calling requests, including nested mutation validation.
 - Preserved comma-separated genes and JSON-string mutation inputs for legacy
   callers.
+- Added `test/test_agentic_tools.py` covering contracts, provenance,
+  verification, legacy compatibility, and mocked Gemini function calling.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.
