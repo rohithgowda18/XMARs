@@ -12,6 +12,8 @@ import sys
 import json
 import logging
 import inspect
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -47,6 +49,7 @@ def _get_predictor():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 TOOLS = {}
+TOOL_REGISTRY_VERSION = '1.1'
 
 
 def register_tool(name: str, description: str,
@@ -420,30 +423,65 @@ def _normalise_arguments(tool_name: str, tool_input: Any) -> Dict[str, Any]:
 
 def execute_tool_result(tool_name: str, tool_input: Any = None) -> Dict[str, Any]:
     """Execute a registered tool and return a structured, machine-readable result."""
+    execution_id = str(uuid.uuid4())
+    executed_at = datetime.now(timezone.utc).isoformat()
+    metadata = {
+        'execution_id': execution_id,
+        'executed_at': executed_at,
+        'registry_version': TOOL_REGISTRY_VERSION,
+    }
+
     if tool_name not in TOOLS:
         return {
             'ok': False,
             'error': f'Tool {tool_name} not found',
             'available_tools': list(TOOLS),
+            'provenance': {**metadata, 'tool': tool_name},
         }
 
     tool = TOOLS[tool_name]
+    provenance = {
+        **metadata,
+        'tool': tool_name,
+        'tool_description': tool['description'],
+        'input_schema': tool['input_schema'],
+    }
     try:
         arguments = _normalise_arguments(tool_name, tool_input)
         validation_error = _validate_arguments(tool_name, arguments)
         if validation_error:
-            return {'ok': False, 'tool': tool_name, 'error': validation_error}
+            return {
+                'ok': False,
+                'tool': tool_name,
+                'error': validation_error,
+                'provenance': provenance,
+            }
 
         result = tool['function'](**arguments)
         if not isinstance(result, str):
             result = json.dumps(result)
-        return {'ok': True, 'tool': tool_name, 'result': result}
+        return {
+            'ok': True,
+            'tool': tool_name,
+            'result': result,
+            'provenance': provenance,
+        }
     except (ValueError, TypeError, json.JSONDecodeError) as exc:
         logger.warning("Invalid arguments for tool %s: %s", tool_name, exc)
-        return {'ok': False, 'tool': tool_name, 'error': str(exc)}
+        return {
+            'ok': False,
+            'tool': tool_name,
+            'error': str(exc),
+            'provenance': provenance,
+        }
     except Exception as exc:
         logger.exception("Tool %s failed", tool_name)
-        return {'ok': False, 'tool': tool_name, 'error': f'Tool execution failed: {exc}'}
+        return {
+            'ok': False,
+            'tool': tool_name,
+            'error': f'Tool execution failed: {exc}',
+            'provenance': provenance,
+        }
 
 
 def execute_tool(tool_name: str, tool_input: Any = None) -> str:

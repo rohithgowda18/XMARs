@@ -124,6 +124,7 @@ class GeminiToolAgent:
                             'tool': name,
                             'arguments': arguments,
                             'ok': result.get('ok', False),
+                            'provenance': result.get('provenance'),
                         })
                         contents_for_model.append(types.Content(
                             role='user',

@@ -17,6 +17,8 @@ existing deterministic XMARs pipeline and legacy tool executor.
 - Added a bounded tool-calling loop with a maximum of six tool calls.
 - Restricted Gemini to the registered local tools.
 - Added explicit tool execution logs to the response.
+- Added provenance metadata to every tool result, including execution ID,
+  timestamp, registry version, description, and input schema.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.
@@ -55,3 +57,7 @@ endpoints remain available.
 The LLM is not allowed to directly calculate scores, execute arbitrary Python,
 or create clinical recommendations outside the returned tool data. Results are
 computational decision support and require clinical validation.
+
+Each tool result includes provenance metadata so a response can be traced to
+the exact local tool execution. The metadata is an execution trace, not a
+claim that the underlying knowledge base is clinically validated or current.
