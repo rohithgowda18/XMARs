@@ -19,6 +19,9 @@ existing deterministic XMARs pipeline and legacy tool executor.
 - Added explicit tool execution logs to the response.
 - Added provenance metadata to every tool result, including execution ID,
   timestamp, registry version, description, and input schema.
+- Added deterministic response verification against successful tool evidence.
+- Added warnings for unsupported gene tokens, missing clinical caveats, and
+  treatment language without drug-resistance evidence.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.
@@ -61,3 +64,7 @@ computational decision support and require clinical validation.
 Each tool result includes provenance metadata so a response can be traced to
 the exact local tool execution. The metadata is an execution trace, not a
 claim that the underlying knowledge base is clinically validated or current.
+
+The `/chat-tools` response also includes `verification`. A `verified` status
+means the deterministic checks found no warnings; `review` means the response
+should be reviewed before being treated as reliable clinical decision support.

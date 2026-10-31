@@ -7,7 +7,12 @@ from typing import Any, Dict, List, Optional
 from google import genai
 from google.genai import types
 
-from ai_tools import TOOLS, execute_tool_result
+try:
+    from .ai_tools import TOOLS, execute_tool_result
+    from .response_verifier import verify_response
+except ImportError:
+    from ai_tools import TOOLS, execute_tool_result
+    from response_verifier import verify_response
 
 logger = logging.getLogger(__name__)
 
@@ -96,11 +101,13 @@ class GeminiToolAgent:
                         answer = _text(response)
                         if not answer:
                             raise RuntimeError('Gemini returned neither text nor a function call')
+                        verification = verify_response(answer, tool_log)
                         return {
                             'ok': True,
                             'model': model_name,
                             'answer': answer,
                             'tool_calls': tool_log,
+                            'verification': verification,
                         }
 
                     if call_number >= self.max_tool_calls:
@@ -124,6 +131,7 @@ class GeminiToolAgent:
                             'tool': name,
                             'arguments': arguments,
                             'ok': result.get('ok', False),
+                            'result': result.get('result', ''),
                             'provenance': result.get('provenance'),
                         })
                         contents_for_model.append(types.Content(
