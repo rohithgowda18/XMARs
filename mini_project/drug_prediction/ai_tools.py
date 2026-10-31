@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from drug_knowledge_base import get_knowledge_base
 from resistance_predictor import ResistancePredictor
+from contracts import MUTATION_SCHEMA_VERSION, normalize_mutations
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ def analyze_pathways(genes_csv: Any):
         genes = [str(g).strip().upper() for g in genes_csv if str(g).strip()]
     else:
         genes = [g.strip().upper() for g in str(genes_csv).split(',') if g.strip()]
-    mutations = [{'gene': g, 'vaf': 0.5} for g in genes]
+    mutations = normalize_mutations([{'gene': g} for g in genes])
     result = predictor.predict(mutations)
 
     pathways = []
@@ -229,6 +230,7 @@ def predict_drug_resistance(mutations_json: Any):
             genes = [g.strip().upper() for g in str(mutations_json).split(',')]
             mutations = [{'gene': g, 'vaf': 0.5} for g in genes if g]
 
+    mutations = normalize_mutations(mutations)
     result = predictor.predict(mutations)
 
     top_drugs = []
@@ -514,6 +516,7 @@ def execute_tool_result(tool_name: str, tool_input: Any = None) -> Dict[str, Any
         'execution_id': execution_id,
         'executed_at': executed_at,
         'registry_version': TOOL_REGISTRY_VERSION,
+        'mutation_schema_version': MUTATION_SCHEMA_VERSION,
     }
 
     if tool_name not in TOOLS:

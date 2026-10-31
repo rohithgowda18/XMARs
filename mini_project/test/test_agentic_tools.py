@@ -6,9 +6,29 @@ from unittest.mock import patch
 from drug_prediction import ai_tools
 from drug_prediction.response_verifier import verify_response
 from drug_prediction import gemini_tool_agent
+from drug_prediction.contracts import normalize_mutations
 
 
 class ToolContractTests(unittest.TestCase):
+    def test_mutation_contract_normalizes_and_preserves_variant_fields(self):
+        mutations = normalize_mutations([{
+            'gene': ' egfr ',
+            'variant': 'p.L858R',
+            'protein_mutation': 'L858R',
+            'vaf': '0.45',
+        }])
+
+        self.assertEqual(mutations, [{
+            'gene': 'EGFR',
+            'vaf': 0.45,
+            'variant': 'p.L858R',
+            'protein_mutation': 'L858R',
+        }])
+
+    def test_mutation_contract_rejects_invalid_vaf(self):
+        with self.assertRaises(ValueError):
+            normalize_mutations([{'gene': 'EGFR', 'vaf': 1.1}])
+
     def test_structured_resistance_input_and_provenance(self):
         result = ai_tools.execute_tool_result(
             'predict_drug_resistance',
@@ -19,6 +39,7 @@ class ToolContractTests(unittest.TestCase):
         self.assertEqual(result['provenance']['tool'], 'predict_drug_resistance')
         self.assertTrue(result['provenance']['execution_id'])
         self.assertEqual(result['provenance']['registry_version'], '1.1')
+        self.assertEqual(result['provenance']['mutation_schema_version'], '1.0')
         self.assertIn(
             'data/processed/03_compounds_cleaned.csv',
             result['provenance']['source_files'],

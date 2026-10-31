@@ -30,6 +30,13 @@ existing deterministic XMARs pipeline and legacy tool executor.
   verification, legacy compatibility, and mocked Gemini function calling.
 - Added declared local source files to each tool and included them in
   execution provenance.
+- Added `drug_prediction/contracts.py` with the versioned `MutationInput`
+  contract and shared `normalize_mutations()` boundary validation.
+- Routed the tool layer and all four pipeline agents through the same mutation
+  contract, including uppercase gene normalization, default VAF handling, and
+  VAF range validation.
+- Added the mutation schema version to tool provenance so analysis inputs can
+  be reproduced after future contract changes.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.
@@ -42,6 +49,10 @@ existing deterministic XMARs pipeline and legacy tool executor.
   - missing required arguments
   - legacy string execution
   - structured dictionary execution
+- Mutation contract checks passed for:
+  - canonical gene/VAF normalization
+  - preservation of variant metadata
+  - rejection of invalid VAF values
 
 ## Usage
 

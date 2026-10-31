@@ -27,6 +27,10 @@ import pandas as pd
 from typing import List, Dict, Optional
 from pathlib import Path
 from datetime import datetime
+try:
+    from .contracts import normalize_mutations
+except ImportError:
+    from contracts import normalize_mutations
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +90,7 @@ class MutationAnalystAgent:
     def run(self, mutations: List[Dict]) -> Dict:
         start_time = time.time()
         thinking = []
+        mutations = normalize_mutations(mutations)
 
         genes = [m['gene'].upper().strip() for m in mutations]
         vafs = {m['gene'].upper().strip(): float(m.get('vaf', 0.5)) for m in mutations}
@@ -255,6 +260,7 @@ class PathwaySpecialistAgent:
     def run(self, mutations: List[Dict], mutation_analysis: Dict) -> Dict:
         start_time = time.time()
         thinking = []
+        mutations = normalize_mutations(mutations)
 
         kb = _get_kb()
         gene_analyses = mutation_analysis.get('gene_analyses', [])
@@ -381,6 +387,7 @@ class DrugStrategistAgent:
             pathway_analysis: Dict) -> Dict:
         start_time = time.time()
         thinking = []
+        mutations = normalize_mutations(mutations)
 
         thinking.append("Received mutation analysis from Agent 1 and pathway analysis from Agent 2")
 
@@ -516,6 +523,7 @@ class ClinicalAdvisorAgent:
             api_key: str = None) -> Dict:
         start_time = time.time()
         thinking = []
+        mutations = normalize_mutations(mutations)
 
         thinking.append("Received outputs from all 3 upstream agents")
         ms = mutation_analysis.get('summary', {})
@@ -810,6 +818,7 @@ class AgentPipeline:
         Returns:
             Combined results from all 4 agents
         """
+        mutations = normalize_mutations(mutations)
         pipeline_start = time.time()
         logger.info(f"Starting Agent Pipeline with {len(mutations)} mutations")
 
