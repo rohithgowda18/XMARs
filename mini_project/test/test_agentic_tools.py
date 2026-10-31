@@ -8,7 +8,7 @@ from drug_prediction.response_verifier import verify_response
 from drug_prediction import gemini_tool_agent
 from drug_prediction.contracts import normalize_mutations
 from drug_prediction.analysis_run import finish_analysis_run, start_analysis_run
-from drug_prediction.evidence import build_drug_evidence
+from drug_prediction.evidence import build_drug_evidence, evidence_review_status
 from drug_prediction.evidence_repository import EvidenceRepository
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -16,6 +16,15 @@ from pathlib import Path
 
 
 class ToolContractTests(unittest.TestCase):
+    def test_computational_evidence_requires_clinical_review(self):
+        status = evidence_review_status([{
+            'clinically_validated': False,
+            'evidence_level': 'computational_local',
+        }])
+
+        self.assertEqual(status['status'], 'clinical_review_required')
+        self.assertTrue(status['clinical_review_required'])
+
     def test_evidence_repository_validates_and_matches_curated_records(self):
         with TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / 'records.json'
@@ -131,6 +140,19 @@ class ToolContractTests(unittest.TestCase):
 
 
 class ResponseVerifierTests(unittest.TestCase):
+    def test_response_with_computational_ranking_requires_review(self):
+        result = verify_response(
+            'This computational ranking requires clinical review and is not a treatment recommendation.',
+            [{
+                'tool': 'predict_drug_resistance',
+                'ok': True,
+                'result': '{"evidence_status":{"status":"clinical_review_required"}}',
+                'provenance': {'execution_id': 'execution-3'},
+            }],
+        )
+
+        self.assertEqual(result['status'], 'verified')
+
     def test_supported_response_is_verified(self):
         result = verify_response(
             'EGFR is included in the computational analysis. Clinical validation is required.',

@@ -27,6 +27,18 @@ def _get_repository() -> EvidenceRepository:
     return _repository
 
 
+def evidence_review_status(records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Summarize whether evidence supports clinical review or only computation."""
+    records = list(records)
+    curated = [record for record in records if record.get("clinically_validated")]
+    return {
+        "status": "curated_evidence_available" if curated else "clinical_review_required",
+        "clinical_review_required": not bool(curated),
+        "curated_record_count": len(curated),
+        "computational_record_count": len(records) - len(curated),
+    }
+
+
 def build_drug_evidence(
     drug_name: str,
     drug_info: Dict[str, Any],

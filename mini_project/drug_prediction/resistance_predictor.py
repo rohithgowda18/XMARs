@@ -19,7 +19,7 @@ import numpy as np
 import logging
 from typing import List, Dict, Optional
 from drug_knowledge_base import get_knowledge_base, DrugKnowledgeBase
-from evidence import build_drug_evidence
+from evidence import build_drug_evidence, evidence_review_status
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +330,15 @@ class ResistancePredictor:
         if not reasoning:
             reasoning.append(f"No direct mutation-drug interaction evidence found — scored as neutral")
 
+        evidence = build_drug_evidence(
+            drug_name,
+            drug_info,
+            [
+                {'gene': gene, 'vaf': vaf}
+                for gene, vaf in mutated_genes.items()
+            ],
+            reasoning,
+        )
         return {
             'drug_name': drug_name,
             'targets': drug_info.get('targets_raw', ''),
@@ -340,15 +349,8 @@ class ResistancePredictor:
             'category_color': category_color,
             'reasoning': reasoning,
             'source': drug_info.get('source', ''),
-            'evidence': build_drug_evidence(
-                drug_name,
-                drug_info,
-                [
-                    {'gene': gene, 'vaf': vaf}
-                    for gene, vaf in mutated_genes.items()
-                ],
-                reasoning,
-            ),
+            'evidence': evidence,
+            'evidence_status': evidence_review_status(evidence),
         }
 
 

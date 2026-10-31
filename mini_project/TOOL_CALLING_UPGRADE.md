@@ -51,6 +51,11 @@ existing deterministic XMARs pipeline and legacy tool executor.
   schema-validated and matched by drug, gene, cancer type, and optional
   variant; unmatched results continue to receive the explicit local
   computational evidence record.
+- Added evidence review status to ranked drug results and reports. When no
+  curated record matches, outputs explicitly set `clinical_review_required`
+  and describe results as computational rankings rather than treatment
+  recommendations. Gemini prompts and fallback reports now preserve this
+  boundary.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.

@@ -458,6 +458,11 @@ class DrugStrategistAgent:
                 'category': drug['category'], 'category_color': drug.get('category_color', '#64748b'),
                 'evidence_chain': evidence_chain, 'evidence_count': len(evidence_chain),
                 'confidence': confidence, 'reasoning': drug.get('reasoning', []),
+                'evidence': drug.get('evidence', []),
+                'evidence_status': drug.get('evidence_status', {
+                    'status': 'clinical_review_required',
+                    'clinical_review_required': True,
+                }),
             })
 
         thinking.append(f"  SHAP-drug target matches found: {shap_matches}")
@@ -619,6 +624,10 @@ class ClinicalAdvisorAgent:
                 'category': drug['category'],
                 'evidence_count': drug['evidence_count'],
                 'key_evidence': [e['description'] for e in drug['evidence_chain'][:2]],
+                'evidence_status': drug.get('evidence_status', {}),
+                'clinical_review_required': drug.get('evidence_status', {}).get(
+                    'clinical_review_required', True
+                ),
             }
             drug_recommendations.append(rec)
 
@@ -643,6 +652,10 @@ class ClinicalAdvisorAgent:
             "All predictions are computational and require clinical validation. "
             "SHAP-based explanations show feature-level model reasoning."
         )
+        considerations.append(
+            "Clinical review is required before using any ranked drug result for "
+            "patient care. Computational ranking is not a treatment recommendation."
+        )
 
         return {
             'patient_mutations': [{'gene': g, 'vaf': m.get('vaf', 0.5)}
@@ -652,6 +665,9 @@ class ClinicalAdvisorAgent:
             'pathway_summary': pathway_analysis.get('summary', {}),
             'drug_summary': drug_strategy.get('summary', {}),
             'drug_recommendations': drug_recommendations,
+            'clinical_review_required': any(
+                rec['clinical_review_required'] for rec in drug_recommendations
+            ),
             'considerations': considerations,
         }
 
@@ -699,11 +715,13 @@ Use the actual drug names, scores, and pathway names from the data.
 Write a clear clinical report in markdown with these sections:
 1. **Patient Overview** - Summarize the mutation profile in plain language
 2. **Key Findings** - Explain the most important findings in simple terms  
-3. **Top Drug Recommendations** - Explain the top 5 drugs and WHY they are recommended, using the evidence data
+3. **Computational Drug Ranking** - Explain the top 5 ranked drugs and WHY they were ranked, using the evidence data. Do not call them treatment recommendations.
 4. **Treatment Considerations** - Important caveats and next steps
 
 Keep the language accessible to a clinician who is not a bioinformatician.
-Use the actual numbers and drug names from the data above."""
+Use the actual numbers and drug names from the data above. State clearly that
+clinical review is required and that computational rankings are not treatment
+recommendations."""
 
         logger.info("Sending structured data to Gemini for human explanation...")
 
@@ -763,8 +781,14 @@ Use the actual numbers and drug names from the data above."""
                          f"(activation: {ps.get('highest_activation', 0):.1%})")
         lines.append("")
 
-        # Drug recommendations
-        lines.append("## Top Drug Recommendations")
+        # Computational ranking
+        lines.append("## Computational Drug Ranking")
+        if structured_report.get('clinical_review_required', True):
+            lines.append(
+                "- **Clinical review required:** These computational rankings "
+                "are not treatment recommendations."
+            )
+        lines.append("")
         for drug in structured_report.get('drug_recommendations', []):
             lines.append(f"### {drug['rank']}. {drug['drug']}")
             lines.append(f"- **Targets:** {drug['targets']}")

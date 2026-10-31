@@ -244,6 +244,7 @@ def predict_drug_resistance(mutations_json: Any):
             'category': d['category'],
             'reasoning': d['reasoning'],
             'evidence': d.get('evidence', []),
+            'evidence_status': d.get('evidence_status', {}),
         })
 
     return json.dumps({
