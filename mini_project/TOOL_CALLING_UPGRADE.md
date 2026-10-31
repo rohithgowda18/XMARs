@@ -22,6 +22,10 @@ existing deterministic XMARs pipeline and legacy tool executor.
 - Added deterministic response verification against successful tool evidence.
 - Added warnings for unsupported gene tokens, missing clinical caveats, and
   treatment language without drug-resistance evidence.
+- Changed pathway and resistance tools to accept structured arrays for
+  function-calling requests, including nested mutation validation.
+- Preserved comma-separated genes and JSON-string mutation inputs for legacy
+  callers.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.

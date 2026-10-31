@@ -132,17 +132,26 @@ def get_gene_info(gene: str):
     name="analyze_pathways",
     description="Analyze which cancer pathways are disrupted by a set of mutated genes. "
                 "Returns pathway names, activation scores, and affected genes. "
-                "Input: comma-separated gene symbols (e.g., 'EGFR,TP53,KRAS').",
+                "Input: an array of gene symbols.",
                 input_schema={
                     'type': 'object',
-                    'properties': {'genes_csv': {'type': 'string', 'description': 'Comma-separated gene symbols'}},
-                    'required': ['genes_csv'],
-                },
+                                'properties': {
+                                    'genes_csv': {
+                                        'type': 'array',
+                                        'items': {'type': 'string'},
+                                        'description': 'Gene symbols to analyze',
+                                    },
+                                },
+                                'required': ['genes_csv'],
+                            },
 )
-def analyze_pathways(genes_csv: str):
+def analyze_pathways(genes_csv: Any):
     """Analyze pathway disruption for a set of mutations."""
     predictor = _get_predictor()
-    genes = [g.strip().upper() for g in genes_csv.split(',') if g.strip()]
+    if isinstance(genes_csv, list):
+        genes = [str(g).strip().upper() for g in genes_csv if str(g).strip()]
+    else:
+        genes = [g.strip().upper() for g in str(genes_csv).split(',') if g.strip()]
     mutations = [{'gene': g, 'vaf': 0.5} for g in genes]
     result = predictor.predict(mutations)
 
@@ -167,28 +176,38 @@ def analyze_pathways(genes_csv: str):
     name="predict_drug_resistance",
     description="Predict drug resistance probabilities for a mutation profile. "
                 "Returns ranked drugs sorted by sensitivity (most effective first). "
-                "Input: mutations as JSON array, e.g., "
-                "'[{\"gene\":\"EGFR\",\"vaf\":0.45},{\"gene\":\"TP53\",\"vaf\":0.82}]'.",
-                input_schema={
-                    'type': 'object',
-                    'properties': {
-                        'mutations_json': {
-                            'type': 'string',
-                            'description': 'JSON array of mutation objects or comma-separated genes',
-                        },
-                    },
+                "Input: mutations as structured objects containing gene and optional vaf.",
+                            input_schema={
+                                'type': 'object',
+                                'properties': {
+                                    'mutations_json': {
+                                        'type': 'array',
+                                        'description': 'Mutation objects with gene and optional vaf',
+                                        'items': {
+                                            'type': 'object',
+                                            'properties': {
+                                                'gene': {'type': 'string'},
+                                                'vaf': {'type': 'number'},
+                                            },
+                                            'required': ['gene'],
+                                        },
+                                    },
+                                },
                     'required': ['mutations_json'],
                 },
 )
-def predict_drug_resistance(mutations_json: str):
+def predict_drug_resistance(mutations_json: Any):
     """Predict drug resistance for a mutation profile."""
     predictor = _get_predictor()
 
-    try:
-        mutations = json.loads(mutations_json)
-    except json.JSONDecodeError:
-        genes = [g.strip().upper() for g in mutations_json.split(',')]
-        mutations = [{'gene': g, 'vaf': 0.5} for g in genes if g]
+    if isinstance(mutations_json, list):
+        mutations = mutations_json
+    else:
+        try:
+            mutations = json.loads(str(mutations_json))
+        except json.JSONDecodeError:
+            genes = [g.strip().upper() for g in str(mutations_json).split(',')]
+            mutations = [{'gene': g, 'vaf': 0.5} for g in genes if g]
 
     result = predictor.predict(mutations)
 
@@ -389,6 +408,27 @@ def _validate_arguments(tool_name: str, arguments: Dict[str, Any]) -> Optional[s
         expected_type = properties.get(name, {}).get('type')
         if expected_type == 'string' and not isinstance(value, str):
             return f"Argument '{name}' must be a string"
+        if expected_type == 'array' and not isinstance(value, list):
+            return f"Argument '{name}' must be an array"
+        if expected_type == 'object' and not isinstance(value, dict):
+            return f"Argument '{name}' must be an object"
+        if expected_type == 'array':
+            item_schema = properties.get(name, {}).get('items', {})
+            item_type = item_schema.get('type')
+            for index, item in enumerate(value):
+                if item_type == 'string' and not isinstance(item, str):
+                    return f"Argument '{name}[{index}]' must be a string"
+                if item_type == 'object' and not isinstance(item, dict):
+                    return f"Argument '{name}[{index}]' must be an object"
+                if item_type == 'object':
+                    for required in item_schema.get('required', []):
+                        if required not in item:
+                            return f"Argument '{name}[{index}]' is missing '{required}'"
+                    for field, field_schema in item_schema.get('properties', {}).items():
+                        if field in item and field_schema.get('type') == 'string' and not isinstance(item[field], str):
+                            return f"Argument '{name}[{index}].{field}' must be a string"
+                        if field in item and field_schema.get('type') == 'number' and not isinstance(item[field], (int, float)):
+                            return f"Argument '{name}[{index}].{field}' must be a number"
     return None
 
 
@@ -417,7 +457,19 @@ def _normalise_arguments(tool_name: str, tool_input: Any) -> Dict[str, Any]:
             raise ValueError('Tool JSON input must be an object')
         return parsed
     if len(parameters) == 1:
-        return {parameters[0]: tool_input}
+        parameter = parameters[0]
+        parameter_schema = TOOLS[tool_name].get('input_schema', {}).get(
+            'properties', {}).get(parameter, {})
+        if parameter_schema.get('type') == 'array':
+            if stripped.startswith('['):
+                parsed = json.loads(stripped)
+                if not isinstance(parsed, list):
+                    raise ValueError(f"Argument '{parameter}' must be an array")
+                return {parameter: parsed}
+            item_schema = parameter_schema.get('items', {})
+            if item_schema.get('type') == 'string':
+                return {parameter: [item.strip() for item in stripped.split(',') if item.strip()]}
+        return {parameter: tool_input}
     raise ValueError('Tool requires a JSON object with named arguments')
 
 
