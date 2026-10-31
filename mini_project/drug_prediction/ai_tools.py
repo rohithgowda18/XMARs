@@ -11,7 +11,9 @@ and agent reasoning. Includes both the original tools and new SHAP tools.
 import sys
 import json
 import logging
+import inspect
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 # Ensure we can import from this directory
 sys.path.insert(0, str(Path(__file__).parent))
@@ -47,13 +49,19 @@ def _get_predictor():
 TOOLS = {}
 
 
-def register_tool(name, description):
+def register_tool(name: str, description: str,
+                  input_schema: Optional[Dict[str, Any]] = None):
     """Decorator to register a function as an agent tool."""
     def decorator(func):
         TOOLS[name] = {
             'name': name,
             'description': description,
             'function': func,
+            'input_schema': input_schema or {
+                'type': 'object',
+                'properties': {},
+                'required': [],
+            },
         }
         return func
     return decorator
@@ -62,7 +70,8 @@ def register_tool(name, description):
 @register_tool(
     name="get_available_genes",
     description="Get the list of all available gene symbols that can be analyzed. "
-                "Returns gene names and number of drugs targeting each gene."
+                "Returns gene names and number of drugs targeting each gene.",
+    input_schema={'type': 'object', 'properties': {}, 'required': []},
 )
 def get_available_genes():
     """Return available genes with metadata."""
@@ -83,7 +92,12 @@ def get_available_genes():
     name="get_gene_info",
     description="Get detailed information about a specific gene: which pathways it belongs to, "
                 "which drugs target it, and its role in cancer. "
-                "Input: gene symbol (e.g., 'EGFR', 'TP53', 'KRAS')."
+                "Input: gene symbol (e.g., 'EGFR', 'TP53', 'KRAS').",
+    input_schema={
+        'type': 'object',
+        'properties': {'gene': {'type': 'string', 'description': 'HGNC gene symbol'}},
+        'required': ['gene'],
+    },
 )
 def get_gene_info(gene: str):
     """Return detailed gene information."""
@@ -115,7 +129,12 @@ def get_gene_info(gene: str):
     name="analyze_pathways",
     description="Analyze which cancer pathways are disrupted by a set of mutated genes. "
                 "Returns pathway names, activation scores, and affected genes. "
-                "Input: comma-separated gene symbols (e.g., 'EGFR,TP53,KRAS')."
+                "Input: comma-separated gene symbols (e.g., 'EGFR,TP53,KRAS').",
+                input_schema={
+                    'type': 'object',
+                    'properties': {'genes_csv': {'type': 'string', 'description': 'Comma-separated gene symbols'}},
+                    'required': ['genes_csv'],
+                },
 )
 def analyze_pathways(genes_csv: str):
     """Analyze pathway disruption for a set of mutations."""
@@ -146,7 +165,17 @@ def analyze_pathways(genes_csv: str):
     description="Predict drug resistance probabilities for a mutation profile. "
                 "Returns ranked drugs sorted by sensitivity (most effective first). "
                 "Input: mutations as JSON array, e.g., "
-                "'[{\"gene\":\"EGFR\",\"vaf\":0.45},{\"gene\":\"TP53\",\"vaf\":0.82}]'."
+                "'[{\"gene\":\"EGFR\",\"vaf\":0.45},{\"gene\":\"TP53\",\"vaf\":0.82}]'.",
+                input_schema={
+                    'type': 'object',
+                    'properties': {
+                        'mutations_json': {
+                            'type': 'string',
+                            'description': 'JSON array of mutation objects or comma-separated genes',
+                        },
+                    },
+                    'required': ['mutations_json'],
+                },
 )
 def predict_drug_resistance(mutations_json: str):
     """Predict drug resistance for a mutation profile."""
@@ -182,7 +211,12 @@ def predict_drug_resistance(mutations_json: str):
 @register_tool(
     name="query_drug_database",
     description="Search the drug database for drugs by name, target, or pathway. "
-                "Input: search query (e.g., 'EGFR inhibitors', 'Erlotinib', 'PI3K pathway')."
+                "Input: search query (e.g., 'EGFR inhibitors', 'Erlotinib', 'PI3K pathway').",
+                input_schema={
+                    'type': 'object',
+                    'properties': {'query': {'type': 'string', 'description': 'Drug, target, or pathway query'}},
+                    'required': ['query'],
+                },
 )
 def query_drug_database(query: str):
     """Search drugs in the knowledge base."""
@@ -217,7 +251,12 @@ def query_drug_database(query: str):
     name="explain_with_shap",
     description="Run SHAP explainability analysis on the ML models for a set of mutations. "
                 "Returns per-feature importance values showing WHY the model predicts what it does. "
-                "Input: comma-separated gene symbols (e.g., 'EGFR,TP53')."
+                "Input: comma-separated gene symbols (e.g., 'EGFR,TP53').",
+                input_schema={
+                    'type': 'object',
+                    'properties': {'genes_csv': {'type': 'string', 'description': 'Comma-separated gene symbols'}},
+                    'required': ['genes_csv'],
+                },
 )
 def explain_with_shap(genes_csv: str):
     """Run SHAP analysis for a set of genes."""
@@ -277,7 +316,17 @@ def explain_with_shap(genes_csv: str):
     name="get_feature_importance",
     description="Get the top N most important features from a specific ML model "
                 "based on SHAP analysis for a set of mutations. "
-                "Input: 'model_name,gene1,gene2,...' (e.g., 'gradient_boosting,EGFR,TP53')."
+                "Input: 'model_name,gene1,gene2,...' (e.g., 'gradient_boosting,EGFR,TP53').",
+                input_schema={
+                    'type': 'object',
+                    'properties': {
+                        'input_str': {
+                            'type': 'string',
+                            'description': 'Model name followed by comma-separated genes',
+                        },
+                    },
+                    'required': ['input_str'],
+                },
 )
 def get_feature_importance(input_str: str):
     """Get feature importance for a specific model."""
@@ -321,29 +370,91 @@ def get_feature_importance(input_str: str):
 # TOOL EXECUTOR
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def execute_tool(tool_name: str, tool_input: str = "") -> str:
-    """Execute a tool by name with the given input."""
+def _validate_arguments(tool_name: str, arguments: Dict[str, Any]) -> Optional[str]:
+    """Validate the small JSON schema used by the local tool registry."""
+    schema = TOOLS[tool_name].get('input_schema', {})
+    properties = schema.get('properties', {})
+    for required in schema.get('required', []):
+        if required not in arguments:
+            return f"Missing required argument: {required}"
+
+    unexpected = set(arguments) - set(properties)
+    if unexpected:
+        return f"Unexpected argument(s): {', '.join(sorted(unexpected))}"
+
+    for name, value in arguments.items():
+        expected_type = properties.get(name, {}).get('type')
+        if expected_type == 'string' and not isinstance(value, str):
+            return f"Argument '{name}' must be a string"
+    return None
+
+
+def _normalise_arguments(tool_name: str, tool_input: Any) -> Dict[str, Any]:
+    """Accept structured arguments while retaining the legacy string interface."""
+    parameters = list(inspect.signature(TOOLS[tool_name]['function']).parameters)
+    if not parameters:
+        if tool_input in ('', None, {}):
+            return {}
+        if isinstance(tool_input, str):
+            parsed = json.loads(tool_input)
+            if parsed != {}:
+                raise ValueError('This tool does not accept arguments')
+            return {}
+        raise ValueError('This tool does not accept arguments')
+
+    if isinstance(tool_input, dict):
+        return tool_input
+    if not isinstance(tool_input, str):
+        raise ValueError('Tool input must be a JSON object or legacy string')
+
+    stripped = tool_input.strip()
+    if stripped.startswith('{'):
+        parsed = json.loads(stripped)
+        if not isinstance(parsed, dict):
+            raise ValueError('Tool JSON input must be an object')
+        return parsed
+    if len(parameters) == 1:
+        return {parameters[0]: tool_input}
+    raise ValueError('Tool requires a JSON object with named arguments')
+
+
+def execute_tool_result(tool_name: str, tool_input: Any = None) -> Dict[str, Any]:
+    """Execute a registered tool and return a structured, machine-readable result."""
     if tool_name not in TOOLS:
-        return json.dumps({'error': f'Tool {tool_name} not found. Available: {list(TOOLS.keys())}'})
+        return {
+            'ok': False,
+            'error': f'Tool {tool_name} not found',
+            'available_tools': list(TOOLS),
+        }
 
     tool = TOOLS[tool_name]
-    func = tool['function']
-
     try:
-        import inspect
-        params = inspect.signature(func).parameters
-        if len(params) == 0:
-            result = func()
-        else:
-            result = func(tool_input)
-        return result
-    except Exception as e:
-        return json.dumps({'error': str(e)})
+        arguments = _normalise_arguments(tool_name, tool_input)
+        validation_error = _validate_arguments(tool_name, arguments)
+        if validation_error:
+            return {'ok': False, 'tool': tool_name, 'error': validation_error}
+
+        result = tool['function'](**arguments)
+        if not isinstance(result, str):
+            result = json.dumps(result)
+        return {'ok': True, 'tool': tool_name, 'result': result}
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning("Invalid arguments for tool %s: %s", tool_name, exc)
+        return {'ok': False, 'tool': tool_name, 'error': str(exc)}
+    except Exception as exc:
+        logger.exception("Tool %s failed", tool_name)
+        return {'ok': False, 'tool': tool_name, 'error': f'Tool execution failed: {exc}'}
+
+
+def execute_tool(tool_name: str, tool_input: Any = None) -> str:
+    """Execute a tool and return JSON for legacy callers."""
+    return json.dumps(execute_tool_result(tool_name, tool_input), indent=2)
 
 
 def get_tools_description() -> str:
     """Get a formatted description of all available tools for the LLM."""
     desc = "Available tools:\n\n"
     for name, tool in TOOLS.items():
-        desc += f"- **{name}**: {tool['description']}\n\n"
+        desc += f"- **{name}**: {tool['description']}\n"
+        desc += f"  Arguments: {json.dumps(tool['input_schema'])}\n\n"
     return desc

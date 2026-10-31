@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from drug_knowledge_base import get_knowledge_base
 from resistance_predictor import ResistancePredictor
+from ai_tools import TOOLS
 from parsers.pdf_parser import extract_text_from_pdf
 from parsers.mutation_extractor import extract_mutations
 
@@ -199,6 +200,31 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_PARSER_KEY = os.getenv("GEMINI_PARSER_KEY") or GEMINI_API_KEY
 
 
+@app.route('/chat-tools', methods=['POST'])
+def chat_tools():
+    """Chat with Gemini using the validated local analysis tools."""
+    try:
+        if not GEMINI_API_KEY:
+            return jsonify({'error': 'Gemini API key not configured'}), 400
+
+        data = request.get_json(silent=True) or {}
+        message = data.get('message', '').strip()
+        context = data.get('context', '').strip()
+        if not message:
+            return jsonify({'error': 'Message is required'}), 400
+        if not isinstance(context, str):
+            return jsonify({'error': 'Context must be a string'}), 400
+
+        from gemini_tool_agent import GeminiToolAgent
+        result = GeminiToolAgent(GEMINI_API_KEY).run(message, context)
+        return jsonify(result)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except Exception as exc:
+        logger.error("Tool-calling chat error: %s", exc)
+        return jsonify({'error': str(exc)}), 502
+
+
 @app.route('/api/ai-status', methods=['GET'])
 def ai_status():
     """Check AI agent system status."""
@@ -229,6 +255,8 @@ def ai_status():
             },
         ],
         'shap_enabled': True,
+        'tool_calling_enabled': bool(GEMINI_API_KEY),
+        'registered_tools': len(TOOLS),
         'models_available': ['random_forest', 'gradient_boosting', 'adaboost'],
     })
 
