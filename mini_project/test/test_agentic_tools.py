@@ -19,6 +19,10 @@ class ToolContractTests(unittest.TestCase):
         self.assertEqual(result['provenance']['tool'], 'predict_drug_resistance')
         self.assertTrue(result['provenance']['execution_id'])
         self.assertEqual(result['provenance']['registry_version'], '1.1')
+        self.assertIn(
+            'data/processed/03_compounds_cleaned.csv',
+            result['provenance']['source_files'],
+        )
 
     def test_legacy_resistance_input_remains_supported(self):
         result = json.loads(

@@ -28,6 +28,8 @@ existing deterministic XMARs pipeline and legacy tool executor.
   callers.
 - Added `test/test_agentic_tools.py` covering contracts, provenance,
   verification, legacy compatibility, and mocked Gemini function calling.
+- Added declared local source files to each tool and included them in
+  execution provenance.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.
@@ -70,6 +72,9 @@ computational decision support and require clinical validation.
 Each tool result includes provenance metadata so a response can be traced to
 the exact local tool execution. The metadata is an execution trace, not a
 claim that the underlying knowledge base is clinically validated or current.
+The provenance also identifies the local datasets and model artifacts used by
+the tool, making the result auditable without implying external clinical
+validation.
 
 The `/chat-tools` response also includes `verification`. A `verified` status
 means the deterministic checks found no warnings; `review` means the response

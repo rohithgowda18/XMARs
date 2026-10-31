@@ -53,7 +53,8 @@ TOOL_REGISTRY_VERSION = '1.1'
 
 
 def register_tool(name: str, description: str,
-                  input_schema: Optional[Dict[str, Any]] = None):
+                  input_schema: Optional[Dict[str, Any]] = None,
+                  source_files: Optional[list[str]] = None):
     """Decorator to register a function as an agent tool."""
     def decorator(func):
         TOOLS[name] = {
@@ -65,6 +66,7 @@ def register_tool(name: str, description: str,
                 'properties': {},
                 'required': [],
             },
+            'source_files': source_files or [],
         }
         return func
     return decorator
@@ -75,6 +77,11 @@ def register_tool(name: str, description: str,
     description="Get the list of all available gene symbols that can be analyzed. "
                 "Returns gene names and number of drugs targeting each gene.",
     input_schema={'type': 'object', 'properties': {}, 'required': []},
+    source_files=[
+        'data/processed/mutation_features.csv',
+        'data/processed/pathway_reference.json',
+        'data/processed/03_compounds_cleaned.csv',
+    ],
 )
 def get_available_genes():
     """Return available genes with metadata."""
@@ -101,6 +108,11 @@ def get_available_genes():
         'properties': {'gene': {'type': 'string', 'description': 'HGNC gene symbol'}},
         'required': ['gene'],
     },
+    source_files=[
+        'data/processed/mutation_features.csv',
+        'data/processed/pathway_reference.json',
+        'data/processed/03_compounds_cleaned.csv',
+    ],
 )
 def get_gene_info(gene: str):
     """Return detailed gene information."""
@@ -144,6 +156,10 @@ def get_gene_info(gene: str):
                                 },
                                 'required': ['genes_csv'],
                             },
+                            source_files=[
+                                'data/processed/pathway_reference.json',
+                                'data/processed/03_compounds_cleaned.csv',
+                            ],
 )
 def analyze_pathways(genes_csv: Any):
     """Analyze pathway disruption for a set of mutations."""
@@ -195,6 +211,10 @@ def analyze_pathways(genes_csv: Any):
                                 },
                     'required': ['mutations_json'],
                 },
+                source_files=[
+                    'data/processed/pathway_reference.json',
+                    'data/processed/03_compounds_cleaned.csv',
+                ],
 )
 def predict_drug_resistance(mutations_json: Any):
     """Predict drug resistance for a mutation profile."""
@@ -239,6 +259,7 @@ def predict_drug_resistance(mutations_json: Any):
                     'properties': {'query': {'type': 'string', 'description': 'Drug, target, or pathway query'}},
                     'required': ['query'],
                 },
+                source_files=['data/processed/03_compounds_cleaned.csv'],
 )
 def query_drug_database(query: str):
     """Search drugs in the knowledge base."""
@@ -279,6 +300,12 @@ def query_drug_database(query: str):
                     'properties': {'genes_csv': {'type': 'string', 'description': 'Comma-separated gene symbols'}},
                     'required': ['genes_csv'],
                 },
+                source_files=[
+                    'data/processed/mutation_features.csv',
+                    'models/random_forest_pipeline.pkl',
+                    'models/gradient_boosting_pipeline.pkl',
+                    'models/adaboost_pipeline.pkl',
+                ],
 )
 def explain_with_shap(genes_csv: str):
     """Run SHAP analysis for a set of genes."""
@@ -349,6 +376,12 @@ def explain_with_shap(genes_csv: str):
                     },
                     'required': ['input_str'],
                 },
+                source_files=[
+                    'data/processed/mutation_features.csv',
+                    'models/random_forest_pipeline.pkl',
+                    'models/gradient_boosting_pipeline.pkl',
+                    'models/adaboost_pipeline.pkl',
+                ],
 )
 def get_feature_importance(input_str: str):
     """Get feature importance for a specific model."""
@@ -497,6 +530,7 @@ def execute_tool_result(tool_name: str, tool_input: Any = None) -> Dict[str, Any
         'tool': tool_name,
         'tool_description': tool['description'],
         'input_schema': tool['input_schema'],
+        'source_files': tool['source_files'],
     }
     try:
         arguments = _normalise_arguments(tool_name, tool_input)
