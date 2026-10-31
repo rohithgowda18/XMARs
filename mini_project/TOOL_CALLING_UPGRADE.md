@@ -46,6 +46,11 @@ existing deterministic XMARs pipeline and legacy tool executor.
   the local source and reasoning, and explicitly state that clinical
   validation, approval status, citations, and variant-level evidence have not
   been assessed.
+- Added `drug_prediction/evidence_repository.py` and the empty
+  `data/evidence/curated_records.json` repository format. Curated records are
+  schema-validated and matched by drug, gene, cancer type, and optional
+  variant; unmatched results continue to receive the explicit local
+  computational evidence record.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.

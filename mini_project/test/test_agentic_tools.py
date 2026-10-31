@@ -9,10 +9,39 @@ from drug_prediction import gemini_tool_agent
 from drug_prediction.contracts import normalize_mutations
 from drug_prediction.analysis_run import finish_analysis_run, start_analysis_run
 from drug_prediction.evidence import build_drug_evidence
+from drug_prediction.evidence_repository import EvidenceRepository
+from tempfile import TemporaryDirectory
+from pathlib import Path
 from pathlib import Path
 
 
 class ToolContractTests(unittest.TestCase):
+    def test_evidence_repository_validates_and_matches_curated_records(self):
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / 'records.json'
+            path.write_text(json.dumps({'records': [{
+                'evidence_id': 'civic:1',
+                'drug': 'example-drug',
+                'gene': 'EGFR',
+                'variant': 'p.L858R',
+                'cancer_type': 'NSCLC',
+                'effect': 'sensitivity',
+                'evidence_level': 'clinical',
+                'source': 'Test source',
+                'citation': 'PMID:1',
+                'last_reviewed': '2026-10-31',
+            }]}), encoding='utf-8')
+            repository = EvidenceRepository(path)
+
+            matches = repository.find(
+                'EXAMPLE-DRUG',
+                ['EGFR'],
+                variant='p.L858R',
+            )
+
+        self.assertEqual(len(matches), 1)
+        self.assertTrue(matches[0]['clinically_validated'])
+
     def test_local_evidence_is_explicitly_not_clinical_validation(self):
         evidence = build_drug_evidence(
             'example-drug',
