@@ -37,6 +37,10 @@ existing deterministic XMARs pipeline and legacy tool executor.
   VAF range validation.
 - Added the mutation schema version to tool provenance so analysis inputs can
   be reproduced after future contract changes.
+- Added `drug_prediction/analysis_run.py` and attached an `analysis_run`
+  record to the full pipeline response. It captures the run ID, normalized
+  inputs, timestamps, pipeline/application versions, and SHA-256 fingerprints
+  for the model and data artifacts used by the pipeline.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.

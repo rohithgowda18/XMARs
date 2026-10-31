@@ -7,9 +7,30 @@ from drug_prediction import ai_tools
 from drug_prediction.response_verifier import verify_response
 from drug_prediction import gemini_tool_agent
 from drug_prediction.contracts import normalize_mutations
+from drug_prediction.analysis_run import finish_analysis_run, start_analysis_run
+from pathlib import Path
 
 
 class ToolContractTests(unittest.TestCase):
+    def test_analysis_run_records_input_and_artifact_fingerprints(self):
+        run = start_analysis_run(
+            [{'gene': 'egfr', 'vaf': 0.45}],
+            Path(__file__).parent.parent,
+        )
+        completed = finish_analysis_run(run, 'completed', 0.12)
+
+        self.assertEqual(completed['analysis_run_schema_version'], '1.0')
+        self.assertTrue(completed['analysis_run_id'])
+        self.assertEqual(completed['input']['mutations'][0]['gene'], 'EGFR')
+        self.assertEqual(completed['status'], 'completed')
+        self.assertTrue(completed['completed_at'])
+        self.assertTrue(any(
+            artifact['path'].endswith('pathway_reference.json')
+            and artifact['available']
+            and artifact['sha256']
+            for artifact in completed['components']['artifacts']
+        ))
+
     def test_mutation_contract_normalizes_and_preserves_variant_fields(self):
         mutations = normalize_mutations([{
             'gene': ' egfr ',

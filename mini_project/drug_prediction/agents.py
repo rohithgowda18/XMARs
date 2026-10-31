@@ -29,8 +29,10 @@ from pathlib import Path
 from datetime import datetime
 try:
     from .contracts import normalize_mutations
+    from .analysis_run import finish_analysis_run, start_analysis_run
 except ImportError:
     from contracts import normalize_mutations
+    from analysis_run import finish_analysis_run, start_analysis_run
 
 logger = logging.getLogger(__name__)
 
@@ -819,6 +821,7 @@ class AgentPipeline:
             Combined results from all 4 agents
         """
         mutations = normalize_mutations(mutations)
+        analysis_run = start_analysis_run(mutations, PROJECT_ROOT)
         pipeline_start = time.time()
         logger.info(f"Starting Agent Pipeline with {len(mutations)} mutations")
 
@@ -884,10 +887,16 @@ class AgentPipeline:
 
         pipeline_elapsed = round(time.time() - pipeline_start, 2)
         logger.info(f"Pipeline complete in {pipeline_elapsed}s")
+        analysis_run = finish_analysis_run(
+            analysis_run,
+            'completed',
+            pipeline_elapsed,
+        )
 
         return {
             'pipeline_status': 'completed',
             'pipeline_elapsed_seconds': pipeline_elapsed,
+            'analysis_run': analysis_run,
             'execution_log': execution_log,
             'mutations_analyzed': [m['gene'] for m in mutations],
 
