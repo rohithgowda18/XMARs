@@ -8,10 +8,25 @@ from drug_prediction.response_verifier import verify_response
 from drug_prediction import gemini_tool_agent
 from drug_prediction.contracts import normalize_mutations
 from drug_prediction.analysis_run import finish_analysis_run, start_analysis_run
+from drug_prediction.evidence import build_drug_evidence
 from pathlib import Path
 
 
 class ToolContractTests(unittest.TestCase):
+    def test_local_evidence_is_explicitly_not_clinical_validation(self):
+        evidence = build_drug_evidence(
+            'example-drug',
+            {'targets': ['EGFR'], 'pathway': 'EGFR signaling'},
+            [{'gene': 'egfr', 'vaf': 0.45}],
+            ['EGFR mutation predicts target sensitivity'],
+        )
+
+        self.assertEqual(evidence[0]['evidence_level'], 'computational_local')
+        self.assertFalse(evidence[0]['clinically_validated'])
+        self.assertEqual(evidence[0]['genes'], ['EGFR'])
+        self.assertIsNone(evidence[0]['citation'])
+        self.assertTrue(evidence[0]['limitations'])
+
     def test_analysis_run_records_input_and_artifact_fingerprints(self):
         run = start_analysis_run(
             [{'gene': 'egfr', 'vaf': 0.45}],

@@ -41,6 +41,11 @@ existing deterministic XMARs pipeline and legacy tool executor.
   record to the full pipeline response. It captures the run ID, normalized
   inputs, timestamps, pipeline/application versions, and SHA-256 fingerprints
   for the model and data artifacts used by the pipeline.
+- Added `drug_prediction/evidence.py` and attached explicit evidence records
+  to ranked drugs. Current records are labeled `computational_local`, include
+  the local source and reasoning, and explicitly state that clinical
+  validation, approval status, citations, and variant-level evidence have not
+  been assessed.
 - Added fallback across the configured Gemini model names.
 - Kept ML, SHAP, pathway, and drug calculations deterministic; Gemini only
   selects tools and explains returned results.

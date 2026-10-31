@@ -243,6 +243,7 @@ def predict_drug_resistance(mutations_json: Any):
             'sensitivity_score': d['sensitivity_score'],
             'category': d['category'],
             'reasoning': d['reasoning'],
+            'evidence': d.get('evidence', []),
         })
 
     return json.dumps({
