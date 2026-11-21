@@ -17,6 +17,11 @@
     <!-- Plotly CDN for Interactive Waterfall & SHAP Visualizations -->
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
+    <!-- Three.js & Loaders for 3D Anatomical Visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <!-- Stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
@@ -105,6 +110,11 @@
                 </div>
 
                 <div class="topbar-actions">
+                    <!-- 3D Lung Anatomy Viewer Action -->
+                    <button class="btn-secondary" style="display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:0.78rem;font-weight:600;border-color:rgba(56,189,248,0.4);color:var(--accent-cyan);background:rgba(56,189,248,0.08);" onclick="openLungModal()" title="Open Interactive 3D Human Lung Anatomical Model">
+                        <span>🫁</span> 3D Lung Anatomy
+                    </button>
+
                     <!-- 1-Click Clinical Case Presets -->
                     <div class="presets-group">
                         <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);padding-left:8px;">Presets:</span>
@@ -583,6 +593,88 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════
+         3D Human Lung Anatomy Modal
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="lung3DModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,7,18,0.85);backdrop-filter:blur(8px);z-index:250;align-items:center;justify-content:center;padding:24px;">
+        <div style="background:radial-gradient(circle at 50% 20%, #0d1527, #060a12);border:1px solid rgba(56,189,248,0.25);border-radius:var(--radius-lg);width:1100px;max-width:96vw;height:88vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.85);overflow:hidden;position:relative;">
+            
+            <!-- Modal Header -->
+            <div style="padding:16px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.6);">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:1.4rem;">🫁</span>
+                    <div>
+                        <div style="font-size:1.1rem;font-weight:700;color:#ffffff;display:flex;align-items:center;gap:8px;">
+                            3D Human Lung Anatomical Reference
+                            <span class="civic-badge level-a" style="font-size:0.7rem;">Non-Diagnostic Biological Reference</span>
+                        </div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);">
+                            Bilateral Pulmonary Lobes & Tracheobronchial Tree • Human Reference Atlas (NIH / HuBMAP Consortium, CC-BY 4.0)
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Toolbar Controls -->
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button class="cat-btn active" id="btnAutoRotate" onclick="toggleLungAutoRotate()" title="Toggle continuous auto-rotation">
+                        <span id="autoRotateIcon">⏸</span> Auto-Rotate
+                    </button>
+                    <button class="cat-btn" onclick="resetLungView()" title="Reset camera angle and zoom">
+                        🔄 Reset View
+                    </button>
+                    <button class="cat-btn" id="btnWireframe" onclick="toggleLungWireframe()" title="Toggle wireframe mesh mode">
+                        🕸️ Wireframe
+                    </button>
+                    <button class="drawer-close-btn" onclick="closeLungModal()" style="margin-left:8px;">✕</button>
+                </div>
+            </div>
+
+            <!-- 3D Canvas Body -->
+            <div style="flex:1;position:relative;overflow:hidden;" id="lung3DContainer">
+                <div id="lungLoadingSpinner" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--accent-cyan);z-index:10;">
+                    <div style="width:40px;height:40px;border:3px solid rgba(56,189,248,0.2);border-top-color:var(--accent-cyan);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+                    <div style="font-size:0.88rem;font-weight:600;">Loading Anatomical 3D Model...</div>
+                </div>
+
+                <!-- Anatomical Lobe Callouts (HUD Overlay) -->
+                <div style="position:absolute;bottom:18px;left:24px;background:rgba(15,23,42,0.85);backdrop-filter:blur(6px);border:1px solid var(--border-card);border-radius:8px;padding:12px 18px;font-size:0.78rem;color:var(--text-secondary);pointer-events:none;z-index:5;">
+                    <div style="font-weight:700;color:#ffffff;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                        <span>📍</span> Anatomical Lobar Partitioning
+                    </div>
+                    <div style="display:flex;gap:24px;">
+                        <div>
+                            <strong style="color:var(--accent-cyan);">Right Lung (3 Lobes):</strong>
+                            <div>• Superior (Upper) Lobe</div>
+                            <div>• Middle Lobe</div>
+                            <div>• Inferior (Lower) Lobe</div>
+                        </div>
+                        <div>
+                            <strong style="color:var(--accent-indigo);">Left Lung (2 Lobes):</strong>
+                            <div>• Superior (Upper) Lobe</div>
+                            <div>• Inferior (Lower) Lobe</div>
+                            <div style="color:var(--text-muted);font-style:italic;">(Cardiac Notch)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interaction Hint -->
+                <div style="position:absolute;bottom:18px;right:24px;background:rgba(15,23,42,0.8);border:1px solid var(--border-subtle);border-radius:6px;padding:8px 14px;font-size:0.74rem;color:var(--text-muted);pointer-events:none;z-index:5;">
+                    <span>🖱️ Drag to Rotate • Scroll to Zoom • Right-Click to Pan</span>
+                </div>
+            </div>
+
+            <!-- Modal Footer Attribution -->
+            <div style="padding:10px 24px;border-top:1px solid var(--border-subtle);background:rgba(10,15,30,0.8);display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:var(--text-muted);">
+                <div>
+                    <strong>Attribution:</strong> Human Reference Atlas (Visible Human Male Project) provided via NIH 3D & HuBMAP Consortium (CC-BY 4.0).
+                </div>
+                <div>
+                    WebGL Render Engine: Three.js r128 • GLTFLoader • OrbitControls
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
          JSON State Inspector Modal
          ═══════════════════════════════════════════════════════════════ -->
     <div id="jsonInspectorModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px;">
@@ -622,6 +714,7 @@
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/plots.js') }}?v=2.0"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}?v=2.0"></script>
+    <script src="{{ url_for('static', filename='js/lung_3d.js') }}?v=1.0"></script>
 
     <!-- Legacy Compatibility Helpers for Existing Routes -->
     <script>
