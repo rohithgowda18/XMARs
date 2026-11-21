@@ -21,6 +21,14 @@ import os
 import json
 import logging
 from pathlib import Path
+
+# Scikit-learn unpickling compatibility shim
+try:
+    import sklearn._loss._loss as _loss
+    sys.modules['_loss'] = _loss
+except Exception:
+    pass
+
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 

@@ -4,1549 +4,613 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drug Resistance Predictor — Lung Cancer Genomics</title>
+    <title>XMARs — Explainable Precision Oncology & Drug Resistance Workspace</title>
     <meta name="description"
-        content="Predict drug resistance and rank candidate drugs based on lung cancer mutation profiles using genomic pathway analysis.">
+        content="Explainable Multi-Agent Reasoning System for Real-Time Drug Resistance Prediction in Non-Small Cell Lung Cancer (NSCLC).">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
 
-        :root {
-            --bg-primary: #0a0e1a;
-            --bg-secondary: #111827;
-            --bg-card: rgba(17, 24, 39, 0.7);
-            --bg-glass: rgba(255, 255, 255, 0.04);
-            --border-glass: rgba(255, 255, 255, 0.08);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --accent-purple: #8b5cf6;
-            --accent-green: #22c55e;
-            --accent-yellow: #eab308;
-            --accent-orange: #f97316;
-            --accent-red: #ef4444;
-            --gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            --gradient-dark: linear-gradient(180deg, #0a0e1a 0%, #111827 100%);
-            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
-            --radius: 12px;
-            --radius-sm: 8px;
-            --radius-lg: 16px;
-        }
+    <!-- Plotly CDN for Interactive Waterfall & SHAP Visualizations -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--gradient-dark);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background:
-                radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
-                radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            padding: 48px 0 36px;
-        }
-
-        .header-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 20px;
-        }
-
-        .header-badge .dot {
-            width: 6px;
-            height: 6px;
-            background: var(--accent-green);
-            border-radius: 50%;
-            animation: pulse-dot 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse-dot {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.5;
-                transform: scale(1.3);
-            }
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 12px;
-            line-height: 1.2;
-        }
-
-        .header p {
-            font-size: 1.05rem;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-lg);
-            padding: 28px;
-            margin-bottom: 24px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            border-color: rgba(59, 130, 246, 0.2);
-            box-shadow: var(--shadow-glow);
-        }
-
-        .card-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-title .icon {
-            font-size: 1.3rem;
-        }
-
-        .card-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-        }
-
-        /* Gene Grid */
-        .gene-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-            gap: 10px;
-        }
-
-        .gene-chip {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all 0.25s ease;
-            user-select: none;
-        }
-
-        .gene-chip:hover {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .gene-chip.selected {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
-        }
-
-        .gene-chip .check-box {
-            width: 18px;
-            height: 18px;
-            border: 2px solid var(--text-muted);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-
-        .gene-chip.selected .check-box {
-            background: var(--accent-blue);
-            border-color: var(--accent-blue);
-        }
-
-        .gene-chip.selected .check-box::after {
-            content: '✓';
-            color: white;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .gene-chip .gene-label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--text-primary);
-        }
-
-        .gene-chip .gene-meta {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-left: auto;
-        }
-
-        /* VAF */
-        .vaf-section {
-            margin-top: 24px;
-            display: none;
-        }
-
-        .vaf-section.visible {
-            display: block;
-        }
-
-        .vaf-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 14px;
-        }
-
-        .vaf-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-sm);
-        }
-
-        .vaf-item .gene-name {
-            font-weight: 600;
-            min-width: 60px;
-            color: var(--accent-cyan);
-        }
-
-        .vaf-slider {
-            flex: 1;
-            -webkit-appearance: none;
-            appearance: none;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            outline: none;
-        }
-
-        .vaf-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent-blue);
-            cursor: pointer;
-            border: 2px solid var(--bg-secondary);
-            transition: transform 0.15s ease;
-        }
-
-        .vaf-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .vaf-value {
-            font-weight: 600;
-            font-size: 0.85rem;
-            min-width: 38px;
-            text-align: right;
-            color: var(--text-primary);
-        }
-
-        /* Buttons */
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 36px;
-            background: var(--gradient-primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-top: 24px;
-            flex-wrap: wrap;
-        }
-
-        .btn-secondary {
-            padding: 14px 28px;
-            background: var(--bg-glass);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius);
-            font-size: 0.9rem;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-primary);
-        }
-
-        .btn-ai {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-        }
-
-        .btn-ai:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.4);
-        }
-
-        .btn-ai:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Loading */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 14, 26, 0.85);
-            backdrop-filter: blur(8px);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .loading-overlay.visible {
-            display: flex;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .loading-text {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        /* Results */
-        #results-section {
-            display: none;
-            animation: fadeSlideUp 0.6s ease-out;
-        }
-
-        #results-section.visible {
-            display: block;
-        }
-
-        @keyframes fadeSlideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Stats */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 14px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            padding: 18px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius);
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 4px;
-        }
-
-        /* Top 10 Drug Cards */
-        .drug-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 16px;
-        }
-
-        .drug-card {
-            padding: 20px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .drug-card:hover {
-            border-color: rgba(59, 130, 246, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .drug-card .drug-rank-badge {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            width: 32px;
-            height: 32px;
-            background: var(--gradient-primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 0.85rem;
-            color: white;
-        }
-
-        .drug-card .drug-card-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-            padding-right: 40px;
-        }
-
-        .drug-card .drug-card-target {
-            font-size: 0.8rem;
-            color: var(--accent-cyan);
-            margin-bottom: 12px;
-        }
-
-        .drug-card .drug-bar-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .drug-card .drug-bar-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            min-width: 65px;
-        }
-
-        .drug-card .drug-bar-bg {
-            flex: 1;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .drug-card .drug-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 1s ease;
-        }
-
-        .drug-card .drug-bar-value {
-            font-weight: 600;
-            font-size: 0.82rem;
-            min-width: 35px;
-            text-align: right;
-        }
-
-        .drug-card .drug-card-category {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            margin-top: 8px;
-        }
-
-        .drug-card .drug-card-pathway {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 8px;
-        }
-
-        /* Pathway Cards */
-        .pathway-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 14px;
-        }
-
-        .pathway-card {
-            padding: 18px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius);
-            transition: all 0.3s ease;
-        }
-
-        .pathway-card:hover {
-            border-color: rgba(6, 182, 212, 0.3);
-        }
-
-        .pathway-name {
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: var(--accent-cyan);
-            margin-bottom: 4px;
-        }
-
-        .pathway-desc {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .pathway-genes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .pathway-gene-tag {
-            padding: 3px 8px;
-            background: rgba(139, 92, 246, 0.15);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 6px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: #c4b5fd;
-        }
-
-        .pathway-gene-tag.mutated {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: rgba(239, 68, 68, 0.4);
-            color: #fca5a5;
-        }
-
-        .pathway-activation {
-            margin-top: 10px;
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-        }
-
-        .pathway-activation-bar {
-            height: 4px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 4px;
-        }
-
-        .pathway-activation-fill {
-            height: 100%;
-            background: var(--gradient-primary);
-            border-radius: 2px;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
-            background: var(--bg-glass);
-            border-radius: var(--radius);
-            padding: 4px;
-            border: 1px solid var(--border-glass);
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 10px 16px;
-            background: none;
-            border: none;
-            border-radius: var(--radius-sm);
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.25s ease;
-        }
-
-        .tab-btn:hover {
-            color: var(--text-secondary);
-        }
-
-        .tab-btn.active {
-            background: var(--accent-blue);
-            color: white;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .tab-panel {
-            display: none;
-        }
-
-        .tab-panel.active {
-            display: block;
-            animation: fadeSlideUp 0.4s ease-out;
-        }
-
-        /* AI Report */
-        .ai-report-card {
-            padding: 28px;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(59, 130, 246, 0.05));
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: var(--radius-lg);
-            line-height: 1.8;
-        }
-
-        .ai-report-card h1,
-        .ai-report-card h2,
-        .ai-report-card h3 {
-            color: var(--accent-cyan);
-            margin: 18px 0 8px;
-        }
-
-        .ai-report-card h1 {
-            font-size: 1.4rem;
-        }
-
-        .ai-report-card h2 {
-            font-size: 1.15rem;
-        }
-
-        .ai-report-card h3 {
-            font-size: 1rem;
-        }
-
-        .ai-report-card p {
-            color: var(--text-secondary);
-            margin: 6px 0;
-        }
-
-        .ai-report-card ul,
-        .ai-report-card ol {
-            padding-left: 20px;
-            color: var(--text-secondary);
-        }
-
-        .ai-report-card li {
-            margin: 4px 0;
-        }
-
-        .ai-report-card strong {
-            color: var(--text-primary);
-        }
-
-        .ai-report-card code {
-            background: rgba(255, 255, 255, 0.06);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.85em;
-        }
-
-        /* Agent Execution Log */
-        .agent-log {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .agent-log-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 18px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius);
-            transition: all 0.4s ease;
-        }
-
-        .agent-log-item.completed {
-            border-color: rgba(34, 197, 94, 0.3);
-        }
-
-        .agent-log-item.running {
-            border-color: rgba(59, 130, 246, 0.4);
-            animation: agentPulse 1.5s ease-in-out infinite;
-        }
-
-        .agent-log-item.pending {
-            opacity: 0.5;
-        }
-
-        .agent-log-item.failed {
-            border-color: rgba(239, 68, 68, 0.4);
-        }
-
-        @keyframes agentPulse {
-
-            0%,
-            100% {
-                box-shadow: none
-            }
-
-            50% {
-                box-shadow: 0 0 15px rgba(59, 130, 246, 0.2)
-            }
-        }
-
-        .agent-icon {
-            font-size: 1.4rem;
-            width: 36px;
-            text-align: center;
-        }
-
-        .agent-info {
-            flex: 1;
-        }
-
-        .agent-name {
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: var(--text-primary);
-        }
-
-        .agent-role {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .agent-status {
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .agent-status.completed {
-            color: var(--accent-green);
-        }
-
-        .agent-status.running {
-            color: var(--accent-blue);
-        }
-
-        .agent-status.pending {
-            color: var(--text-muted);
-        }
-
-        .agent-status.failed {
-            color: var(--accent-red);
-        }
-
-        .agent-elapsed {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            min-width: 50px;
-            text-align: right;
-        }
-
-        /* SHAP Charts */
-        .shap-section {
-            margin-top: 20px;
-        }
-
-        .shap-model-tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 16px;
-            background: var(--bg-glass);
-            border-radius: var(--radius-sm);
-            padding: 3px;
-            border: 1px solid var(--border-glass);
-        }
-
-        .shap-model-tab {
-            flex: 1;
-            padding: 8px 12px;
-            background: none;
-            border: none;
-            border-radius: 6px;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.25s;
-        }
-
-        .shap-model-tab:hover {
-            color: var(--text-secondary);
-        }
-
-        .shap-model-tab.active {
-            background: var(--accent-purple);
-            color: white;
-        }
-
-        .shap-bar-chart {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .shap-bar-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .shap-bar-label {
-            min-width: 160px;
-            max-width: 160px;
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-            text-align: right;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .shap-bar-bg {
-            flex: 1;
-            height: 22px;
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .shap-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.8s ease;
-            min-width: 2px;
-        }
-
-        .shap-bar-value {
-            font-size: 0.75rem;
-            font-weight: 600;
-            min-width: 60px;
-            color: var(--text-secondary);
-        }
-
-        .shap-gene-card {
-            padding: 16px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius);
-            margin-bottom: 12px;
-        }
-
-        .shap-gene-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .shap-gene-name {
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--accent-cyan);
-        }
-
-        .shap-gene-badge {
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
-        .shap-gene-badge.driver {
-            background: rgba(34, 197, 94, 0.15);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: #86efac;
-        }
-
-        .shap-gene-badge.passenger {
-            background: rgba(234, 179, 8, 0.15);
-            border: 1px solid rgba(234, 179, 8, 0.3);
-            color: #fde047;
-        }
-
-        .shap-gene-badge.unknown {
-            background: rgba(100, 116, 139, 0.15);
-            border: 1px solid rgba(100, 116, 139, 0.3);
-            color: #94a3b8;
-        }
-
-        /* Evidence chains */
-        .evidence-chain {
-            margin-top: 8px;
-        }
-
-        .evidence-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            padding: 6px 0;
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-        }
-
-        .evidence-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-top: 5px;
-            flex-shrink: 0;
-        }
-
-        .evidence-dot.strong {
-            background: var(--accent-green);
-        }
-
-        .evidence-dot.moderate {
-            background: var(--accent-yellow);
-        }
-
-        .evidence-dot.low {
-            background: var(--text-muted);
-        }
-
-        .ai-loading {
-            display: none;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .ai-loading.visible {
-            display: block;
-        }
-
-        /* ═══ CHATBOT ═══ */
-        .chatbot-toggle {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            background: var(--gradient-primary);
-            border: none;
-            border-radius: 50%;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            z-index: 50;
-            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .chatbot-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 30px rgba(59, 130, 246, 0.5);
-        }
-
-        .chatbot-panel {
-            position: fixed;
-            bottom: 90px;
-            right: 24px;
-            width: 380px;
-            max-height: 520px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-lg);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            z-index: 50;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .chatbot-panel.visible {
-            display: flex;
-            animation: fadeSlideUp 0.3s ease-out;
-        }
-
-        .chatbot-header {
-            padding: 16px 20px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1));
-            border-bottom: 1px solid var(--border-glass);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chatbot-header .chat-title {
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-
-        .chatbot-header .chat-subtitle {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-        }
-
-        .chatbot-header .chat-close {
-            margin-left: auto;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.2rem;
-            cursor: pointer;
-        }
-
-        .chatbot-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            max-height: 360px;
-        }
-
-        .chat-msg {
-            max-width: 85%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-
-        .chat-msg.user {
-            align-self: flex-end;
-            background: var(--accent-blue);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .chat-msg.bot {
-            align-self: flex-start;
-            background: var(--bg-glass);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-glass);
-            border-bottom-left-radius: 4px;
-        }
-
-        .chat-msg.bot strong {
-            color: var(--text-primary);
-        }
-
-        .chat-msg.typing {
-            opacity: 0.6;
-        }
-
-        .chatbot-input-row {
-            display: flex;
-            gap: 8px;
-            padding: 12px 16px;
-            border-top: 1px solid var(--border-glass);
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        .chatbot-input-row input {
-            flex: 1;
-            padding: 10px 14px;
-            background: var(--bg-glass);
-            color: var(--text-primary);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: 0.85rem;
-            outline: none;
-        }
-
-        .chatbot-input-row input:focus {
-            border-color: var(--accent-blue);
-        }
-
-        .chatbot-input-row button {
-            padding: 10px 16px;
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.85rem;
-            transition: background 0.2s;
-        }
-
-        .chatbot-input-row button:hover {
-            background: #2563eb;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 40px 0;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-        }
-
-        .footer a {
-            color: var(--accent-blue);
-            text-decoration: none;
-        }
-
-        /* PDF Upload */
-        .upload-card {
-            border-style: dashed;
-            border-color: var(--border-glass);
-            text-align: center;
-            padding: 40px 24px;
-            margin-bottom: 24px;
-        }
-
-        .upload-card:hover {
-            border-color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.03);
-        }
-
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-            color: var(--accent-blue);
-            opacity: 0.8;
-        }
-
-        .upload-btn-label {
-            display: inline-block;
-            padding: 12px 24px;
-            background: var(--accent-blue);
-            color: white;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 16px;
-            transition: all 0.2s;
-        }
-
-        .upload-btn-label:hover {
-            background: #2563eb;
-            transform: translateY(-2px);
-        }
-
-        .upload-btn-label input {
-            display: none;
-        }
-
-        .upload-status {
-            margin-top: 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        /* Verification Table */
-        .verification-card {
-            margin-bottom: 24px;
-            display: none;
-        }
-
-        .verification-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 16px;
-        }
-
-        .verification-table th {
-            text-align: left;
-            padding: 12px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-glass);
-        }
-
-        .verification-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-glass);
-        }
-
-        .verification-table input {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            color: var(--text-primary);
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            width: 100%;
-        }
-
-        .verification-table .remove-btn {
-            background: none;
-            border: none;
-            color: var(--accent-red);
-            cursor: pointer;
-            font-size: 1.1rem;
-            opacity: 0.6;
-        }
-
-        .verification-table .remove-btn:hover {
-            opacity: 1;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8rem;
-            }
-
-            .gene-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .drug-cards-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .pathway-cards {
-                grid-template-columns: 1fr;
-            }
-
-            .chatbot-panel {
-                width: calc(100vw - 48px);
-                right: 16px;
-                bottom: 80px;
-            }
-        }
-    </style>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 </head>
 
 <body>
-
+    <!-- Global Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div class="loading-text">Analyzing mutation profile & ranking drugs...</div>
+        <div class="loading-text" style="color:#ffffff;font-weight:600;margin-top:16px;">Analyzing Genomic Profile...</div>
     </div>
 
-    <div class="container">
-        <header class="header">
-            <div class="header-badge"><span class="dot"></span> Genomic Drug Prediction System</div>
-            <h1>Drug Resistance Predictor</h1>
-            <p>Select mutated genes from your genomic analysis to predict drug resistance probabilities and identify the
-                most effective candidate therapies for lung cancer.</p>
-        </header>
-
-        <!-- Alternative Input: PDF Upload -->
-        <section class="card upload-card" id="uploadCard">
-            <div class="upload-icon">📄</div>
-            <div class="card-title" style="justify-content: center;">Upload Genomic Report</div>
-            <div class="card-subtitle">Automatically extract mutations from PDF pathology reports (FoundationOne, Caris, Guardant, etc.)</div>
-            
-            <label class="upload-btn-label">
-                <span>Choose PDF File</span>
-                <input type="file" id="pdfInput" accept=".pdf" onchange="handleFileUpload()">
-            </label>
-            <div class="upload-status" id="uploadStatus">No file selected</div>
-            
-            <button class="btn-primary" id="parseBtn" style="margin-top: 20px; display: none;" onclick="parsePDF()">
-                <span>⚡</span> Extract Mutations
-            </button>
-        </section>
-
-        <!-- Extracted Mutations Verification -->
-        <section class="card verification-card" id="verificationCard">
-            <div class="card-title"><span class="icon">🔍</span> Verify Extracted Mutations</div>
-            <div class="card-subtitle">Please verify the extracted data before running analysis. You can manually correct values or add missing mutations.</div>
-            
-            <table class="verification-table">
-                <thead>
-                    <tr>
-                        <th style="width: 30%;">Gene</th>
-                        <th style="width: 30%;">Mutation (Protein)</th>
-                        <th style="width: 25%;">VAF (0.0 - 1.0)</th>
-                        <th style="width: 15%;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="verificationTableBody"></tbody>
-            </table>
-            
-            <div class="btn-row" style="margin-top: 24px;">
-                <button class="btn-primary" onclick="confirmAndPredict()">
-                    <span>⚡</span> Confirm & Predict
-                </button>
-                <button class="btn-ai" onclick="confirmAndAnalyze()">
-                    <span>🤖</span> Confirm & Run AI Analysis
-                </button>
-                <button class="btn-secondary" onclick="addMutationRow()">+ Add Mutation</button>
-                <button class="btn-secondary" onclick="cancelVerification()">Cancel</button>
-            </div>
-        </section>
-
-        <section class="card" id="inputCard">
-            <div class="card-title"><span class="icon">🧬</span> Manual Mutation Selection</div>
-            <div class="card-subtitle">Alternatively, choose genes manually and adjust their VAF values using the grid below.</div>
-            <div class="gene-grid" id="geneGrid"></div>
-
-            <div class="vaf-section" id="vafSection">
-                <div class="card-title" style="margin-top: 8px;"><span class="icon">📊</span> Variant Allele Frequency
-                    (VAF)</div>
-                <div class="card-subtitle">Adjust VAF for each selected gene. Higher VAF indicates the mutation is
-                    present in more tumor cells.</div>
-                <div class="vaf-grid" id="vafGrid"></div>
-            </div>
-
-            <div class="btn-row">
-                <button class="btn-primary" id="predictBtn" disabled onclick="runPrediction()">
-                    <span>⚡</span> Predict Drug Response
-                </button>
-                <button class="btn-ai" id="aiBtn" disabled onclick="runAIAnalysis()">
-                    <span>🤖</span> AI Agent Analysis
-                </button>
-                <button class="btn-secondary" onclick="clearSelection()">Clear All</button>
-            </div>
-        </section>
-
-        <section id="results-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h2 style="font-size: 1.5rem; font-weight: 800; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Analysis Results</h2>
-                <button class="btn-ai" id="resultsAiBtn" onclick="runAIAnalysis()">
-                    <span>🤖</span> Run AI Agent Analysis
-                </button>
-            </div>
-            <div class="stats-grid" id="statsGrid"></div>
-
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('drugs')">💊 Top 10 Drugs</button>
-                <button class="tab-btn" onclick="switchTab('pathways')">🔬 Pathways</button>
-                <button class="tab-btn" onclick="switchTab('shap')" id="shapTabBtn" style="display:none">📊 SHAP
-                    Explainability</button>
-                <button class="tab-btn" onclick="switchTab('ai')" id="aiTabBtn" style="display:none">🤖 AI
-                    Report</button>
-            </div>
-
-            <div class="tab-panel active" id="tab-drugs">
-                <div class="card">
-                    <div class="card-title"><span class="icon">💊</span> Top 10 Candidate Drugs</div>
-                    <div class="card-subtitle">Drugs ranked by predicted sensitivity (most effective first). Lower
-                        resistance score = higher therapeutic potential.</div>
-                    <div class="drug-cards-grid" id="drugCardsGrid"></div>
+    <!-- Application Shell Grid -->
+    <div class="app-wrapper">
+        <!-- ═══════════════════════════════════════════════════════════════
+             Sidebar Navigation
+             ═══════════════════════════════════════════════════════════════ -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">🧬</div>
+                <div class="brand-text">
+                    <h1>XMARs</h1>
+                    <span>Precision Oncology</span>
                 </div>
             </div>
 
-            <div class="tab-panel" id="tab-pathways">
-                <div class="card">
-                    <div class="card-title"><span class="icon">🔬</span> Affected Cancer Pathways</div>
-                    <div class="card-subtitle">Pathways disrupted by the selected mutations.</div>
-                    <div class="pathway-cards" id="pathwayCards"></div>
+            <nav class="sidebar-nav">
+                <div class="nav-label">Diagnostic Workspace</div>
+                
+                <button class="nav-item active" data-tab="tab-intake" onclick="switchWorkspaceTab('tab-intake')">
+                    <span class="nav-icon">📁</span>
+                    <span>1. Genomic Intake</span>
+                    <span class="nav-badge" id="navBadgeGenes">0</span>
+                </button>
+
+                <button class="nav-item" data-tab="tab-reasoning" onclick="switchWorkspaceTab('tab-reasoning')">
+                    <span class="nav-icon">🔬</span>
+                    <span>2. Molecular Reasoning</span>
+                    <span class="nav-badge">SHAP</span>
+                </button>
+
+                <button class="nav-item" data-tab="tab-landscape" onclick="switchWorkspaceTab('tab-landscape')">
+                    <span class="nav-icon">💊</span>
+                    <span>3. Therapeutic Landscape</span>
+                    <span class="nav-badge">224</span>
+                </button>
+
+                <button class="nav-item" data-tab="tab-agents" onclick="switchWorkspaceTab('tab-agents')">
+                    <span class="nav-icon">⚡</span>
+                    <span>4. Multi-Agent Console</span>
+                    <span class="nav-badge">4 Agents</span>
+                </button>
+
+                <button class="nav-item" data-tab="tab-report" onclick="switchWorkspaceTab('tab-report')">
+                    <span class="nav-icon">📋</span>
+                    <span>5. Tumor Board Report</span>
+                    <span class="nav-badge">AI Synthesis</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status-pill">
+                    <span class="pulse-dot"></span>
+                    <span>Pipeline: <strong>Online</strong> (0.914 AUC)</span>
                 </div>
             </div>
+        </aside>
 
-            <div class="tab-panel" id="tab-shap">
-                <div class="card">
-                    <div class="card-title"><span class="icon">📊</span> SHAP Explainability</div>
-                    <div class="card-subtitle">Feature importance analysis using SHAP (SHapley Additive exPlanations)
-                        across all 3 ML models. Shows WHY the models make their predictions.</div>
-                    <div id="shapContent">
-                        <div class="card-subtitle" style="text-align:center;padding:30px;color:var(--text-muted)">Run AI
-                            Agent Analysis to see SHAP explanations</div>
+        <!-- ═══════════════════════════════════════════════════════════════
+             Main Application Canvas
+             ═══════════════════════════════════════════════════════════════ -->
+        <main class="app-main">
+            <!-- Workspace Top Bar -->
+            <header class="workspace-topbar">
+                <div class="topbar-meta">
+                    <div class="meta-pill highlight">
+                        <span>Cohort:</span> <strong>NSCLC (LUAD / LUSC)</strong>
                     </div>
-                </div>
-            </div>
-
-            <div class="tab-panel" id="tab-ai">
-                <!-- Agent Execution Log -->
-                <div class="card" id="agentLogCard">
-                    <div class="card-title"><span class="icon">⚡</span> Agent Pipeline Execution</div>
-                    <div class="card-subtitle">Real computational agents executing sequentially — each performs actual
-                        work (not LLM role-play)</div>
-                    <div class="agent-log" id="agentLog">
-                        <div class="agent-log-item pending" id="agent-log-1">
-                            <div class="agent-icon">🧬</div>
-                            <div class="agent-info">
-                                <div class="agent-name">Agent 1: Mutation Analyst</div>
-                                <div class="agent-role">SHAP + ML model classification</div>
-                            </div>
-                            <div class="agent-status pending">Pending</div>
-                            <div class="agent-elapsed"></div>
-                        </div>
-                        <div class="agent-log-item pending" id="agent-log-2">
-                            <div class="agent-icon">🔬</div>
-                            <div class="agent-info">
-                                <div class="agent-name">Agent 2: Pathway Specialist</div>
-                                <div class="agent-role">Pathway mapping & disruption scoring</div>
-                            </div>
-                            <div class="agent-status pending">Pending</div>
-                            <div class="agent-elapsed"></div>
-                        </div>
-                        <div class="agent-log-item pending" id="agent-log-3">
-                            <div class="agent-icon">💊</div>
-                            <div class="agent-info">
-                                <div class="agent-name">Agent 3: Drug Strategist</div>
-                                <div class="agent-role">Evidence-based drug ranking</div>
-                            </div>
-                            <div class="agent-status pending">Pending</div>
-                            <div class="agent-elapsed"></div>
-                        </div>
-                        <div class="agent-log-item pending" id="agent-log-4">
-                            <div class="agent-icon">🩺</div>
-                            <div class="agent-info">
-                                <div class="agent-name">Agent 4: Clinical Advisor</div>
-                                <div class="agent-role">Synthesis + Gemini human explanation</div>
-                            </div>
-                            <div class="agent-status pending">Pending</div>
-                            <div class="agent-elapsed"></div>
-                        </div>
+                    <div class="meta-pill">
+                        <span>Ensemble:</span> <strong>RF + GB + AdaBoost</strong>
+                    </div>
+                    <div class="meta-pill">
+                        <span>Compounds:</span> <strong>621 Curated Drugs</strong>
                     </div>
                 </div>
 
-                <!-- AI Report -->
-                <div class="ai-loading" id="aiLoading">
-                    <div class="spinner" style="margin: 0 auto"></div>
-                    <p style="margin-top:16px;color:var(--text-secondary)" id="aiLoadingText">Starting agent pipeline...
-                    </p>
-                </div>
-                <div id="aiReportContent" style="display:none">
-                    <div class="card">
-                        <div class="card-title"><span class="icon">🤖</span> Clinical Report</div>
-                        <div class="card-subtitle" id="aiReportSubtitle">Generated by Real Multi-Agent Pipeline (4
-                            independent computational agents)</div>
-                        <div class="ai-report-card" id="aiReport"></div>
+                <div class="topbar-actions">
+                    <!-- 1-Click Clinical Case Presets -->
+                    <div class="presets-group">
+                        <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);padding-left:8px;">Presets:</span>
+                        <button class="preset-btn" onclick="loadCasePreset('caseA')" title="EGFR L858R + TP53 + KRAS">Case A (Multi-Driver)</button>
+                        <button class="preset-btn" onclick="loadCasePreset('caseB')" title="ALK + NF1 Fusion & Pathway">Case B (ALK/NF1)</button>
+                        <button class="preset-btn" onclick="loadCasePreset('caseC')" title="EGFR + MET + BRAF Bypass Resistance">Case C (Bypass TKI)</button>
                     </div>
                 </div>
-            </div>
-        </section>
+            </header>
 
-        <footer class="footer">
-            <p>Cancer Genomic Analysis & ML Prediction System — Drug Resistance Module</p>
-            <p style="margin-top:4px;">All drug-gene relationships sourced from project compounds database (621 drugs)
-                and pathway reference data.</p>
-        </footer>
+            <!-- Workspace Content Canvas -->
+            <div class="workspace-canvas">
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     TAB 1: GENOMIC INTAKE & VALIDATION
+                     ═══════════════════════════════════════════════════════════════ -->
+                <div class="workspace-tab-panel active" id="tab-intake">
+                    <div class="section-header">
+                        <h2 class="section-title"><span>🧬</span> Patient Genomic Intake & Diagnostic Ingestion</h2>
+                        <p class="section-desc">Upload a clinical molecular diagnostic PDF report (FoundationOne CDx, Guardant360, Caris) or manually select somatic variants across 19 NSCLC target genes.</p>
+                    </div>
+
+                    <!-- Presets Quick-Banner -->
+                    <div class="presets-banner">
+                        <div class="presets-label">
+                            <span>⚡ Quick Evaluation Presets:</span>
+                        </div>
+                        <div class="presets-chips">
+                            <button class="clinical-preset-pill" onclick="loadCasePreset('caseA')">
+                                <strong>Case A:</strong> EGFR (0.45) + TP53 (0.82) + KRAS (0.35)
+                                <span class="tag">Multi-Driver</span>
+                            </button>
+                            <button class="clinical-preset-pill" onclick="loadCasePreset('caseB')">
+                                <strong>Case B:</strong> ALK (0.55) + NF1 (0.40)
+                                <span class="tag">Crizotinib Candidate</span>
+                            </button>
+                            <button class="clinical-preset-pill" onclick="loadCasePreset('caseC')">
+                                <strong>Case C:</strong> EGFR (0.50) + MET (0.42) + BRAF (0.30)
+                                <span class="tag">Bypass Circuit</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dual Ingestion Grid -->
+                    <div class="intake-dual-grid">
+                        <!-- Left: PDF Extraction Card -->
+                        <div class="sc-card" id="uploadCard">
+                            <div class="sc-card-header">
+                                <div class="sc-card-title"><span>📄</span> Upload Diagnostic Report</div>
+                                <span class="sc-card-subtitle">Automated OCR & NLP</span>
+                            </div>
+                            <div class="dropzone-box" onclick="document.getElementById('pdfInput').click()">
+                                <div class="dropzone-icon">📑</div>
+                                <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:6px;">Drop Clinical PDF or Click to Browse</h3>
+                                <p style="font-size:0.82rem;color:var(--text-secondary);max-width:320px;margin:0 auto 16px;">
+                                    Parses somatic alterations, protein changes, and Variant Allele Frequencies (VAF).
+                                </p>
+                                <input type="file" id="pdfInput" accept=".pdf" style="display:none;" onchange="handleFileUpload()">
+                                <div class="meta-pill" id="uploadStatus">No file selected</div>
+                            </div>
+
+                            <button class="btn-primary" id="parseBtn" style="margin-top: 18px; width: 100%; display: none;" onclick="parsePDF()">
+                                <span>⚡</span> Extract Mutations & Review
+                            </button>
+                        </div>
+
+                        <!-- Right: Manual Selection Card -->
+                        <div class="sc-card" id="inputCard">
+                            <div class="sc-card-header">
+                                <div class="sc-card-title"><span>🧬</span> Somatic Gene Selection</div>
+                                <span class="sc-card-subtitle">19 Validated NSCLC Genes</span>
+                            </div>
+
+                            <div class="gene-grid" id="geneGrid"></div>
+
+                            <!-- VAF Sliders -->
+                            <div class="vaf-section" id="vafSection" style="margin-top:20px;">
+                                <div class="sc-card-title" style="font-size:0.95rem;margin-bottom:4px;">
+                                    <span>📊</span> Variant Allele Frequency (VAF)
+                                </div>
+                                <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
+                                    Adjust VAF for each selected variant. Values $\ge 0.30$ indicate high-confidence initiating clonal drivers.
+                                </p>
+                                <div class="vaf-grid" id="vafGrid"></div>
+                            </div>
+
+                            <!-- Action Bar -->
+                            <div class="btn-row" style="margin-top:24px;">
+                                <button class="btn-primary" id="predictBtn" disabled onclick="runPrediction()">
+                                    <span>⚡</span> Predict Drug Response
+                                </button>
+                                <button class="btn-ai" id="aiBtn" disabled onclick="runAIAnalysis()">
+                                    <span>🤖</span> Run Multi-Agent Reasoning
+                                </button>
+                                <button class="btn-secondary" onclick="clearSelection()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF Verification Table Modal/Section -->
+                    <div class="sc-card verification-card" id="verificationCard" style="display:none;margin-top:24px;">
+                        <div class="sc-card-header">
+                            <div class="sc-card-title"><span>🔍</span> Verify Extracted Diagnostic Mutations</div>
+                            <span class="sc-card-subtitle">Review HGVS protein annotations before inference</span>
+                        </div>
+                        <div class="data-table-container">
+                            <table class="sc-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 30%;">Gene Symbol</th>
+                                        <th style="width: 30%;">Protein Variant (HGVS)</th>
+                                        <th style="width: 25%;">Tumor VAF (0.0 - 1.0)</th>
+                                        <th style="width: 15%;text-align:center;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="verificationTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="btn-row" style="margin-top: 20px;">
+                            <button class="btn-primary" onclick="confirmAndPredict()">
+                                <span>⚡</span> Confirm & Predict
+                            </button>
+                            <button class="btn-ai" onclick="confirmAndAnalyze()">
+                                <span>🤖</span> Confirm & Run AI Pipeline
+                            </button>
+                            <button class="btn-secondary" onclick="addMutationRow()">+ Add Variant</button>
+                            <button class="btn-secondary" onclick="cancelVerification()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     TAB 2: MOLECULAR REASONING & DIVERGING SHAP
+                     ═══════════════════════════════════════════════════════════════ -->
+                <div class="workspace-tab-panel" id="tab-reasoning">
+                    <div class="section-header">
+                        <h2 class="section-title"><span>🔬</span> Molecular Reasoning & Explainable AI (SHAP)</h2>
+                        <p class="section-desc">Game-theoretic feature attributions computed via polynomial TreeExplainer. Explains the exact genomic determinants driving drug sensitivity versus resistance.</p>
+                    </div>
+
+                    <!-- Pathogenicity ML Consensus Grid -->
+                    <div class="sc-card">
+                        <div class="sc-card-header">
+                            <div class="sc-card-title"><span>🛡️</span> Variant Pathogenicity & Driver Consensus</div>
+                            <span class="sc-card-subtitle">Random Forest + Gradient Boosting + AdaBoost Soft Voting (0.914 ROC-AUC)</span>
+                        </div>
+                        <div class="pathogenicity-grid" id="pathogenicityGrid">
+                            <div style="color:var(--text-muted);font-size:0.88rem;padding:20px;text-align:center;">
+                                Select mutations in Tab 1 and run inference to generate pathogenicity consensus calls.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CellHit-Style Diverging SHAP Waterfall -->
+                    <div class="sc-card">
+                        <div class="sc-card-header">
+                            <div class="sc-card-title"><span>📊</span> CellHit-Style Diverging Feature Attribution Waterfall</div>
+                            <span class="sc-card-subtitle">Exact Shapley Values ($\phi_i$) decomposing prediction away from cohort base expectation</span>
+                        </div>
+                        <div class="shap-legend">
+                            <div class="legend-item">
+                                <span class="legend-box resistance"></span>
+                                <span>Positive ($\phi > 0$): Confers Drug Resistance / Driver</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-box sensitivity"></span>
+                                <span>Negative ($\phi < 0$): Confers Drug Sensitivity / Neutral</span>
+                            </div>
+                        </div>
+                        <div class="shap-diverging-container" id="shapDivergingPlot">
+                            <div style="text-align:center;padding:80px 20px;color:var(--text-muted)">
+                                Run Multi-Agent Reasoning to generate exact SHAP attribution vectors.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Oncogenic Signaling & Bypass Pathway Diagram -->
+                    <div class="sc-card">
+                        <div class="sc-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <div class="sc-card-title"><span>⚡</span> Molecular Signaling Network & Bypass Resistance Circuit</div>
+                                <span class="sc-card-subtitle">Real-time intracellular cascade mapping patient alterations, active drug targets, and bypass escape routes</span>
+                            </div>
+                            <div class="shap-legend" style="margin:0;">
+                                <div class="legend-item"><span class="legend-box" style="background:#ef4444;"></span><span>Mutated Driver</span></div>
+                                <div class="legend-item"><span class="legend-box" style="background:#10b981;"></span><span>Inhibited Target</span></div>
+                                <div class="legend-item"><span class="legend-box" style="background:#eab308;"></span><span>Bypass Escape Route</span></div>
+                            </div>
+                        </div>
+                        <div id="pathwayDiagramContainer" style="width:100%; min-height:460px; background:radial-gradient(circle at 50% 50%, rgba(15,23,42,0.95), rgba(7,11,20,0.98)); border:1px solid var(--border-subtle); border-radius:var(--radius-md); overflow:hidden; position:relative;">
+                            <div style="text-align:center;padding:160px 20px;color:var(--text-muted)">
+                                Run prediction or multi-agent reasoning to generate the interactive molecular signaling cascade.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Affected Cancer Pathways Card -->
+                    <div class="sc-card">
+                        <div class="sc-card-header">
+                            <div class="sc-card-title"><span>🧬</span> Canonical Signaling Cascades & Bypass Cross-talk</div>
+                            <span class="sc-card-subtitle">8 curated oncogenic networks evaluated for regulatory disruption</span>
+                        </div>
+                        <div class="pathway-cards" id="pathwayCards">
+                            <div style="text-align:center;padding:40px;color:var(--text-muted)">
+                                No pathways evaluated yet. Run prediction to view network disruption scores.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     TAB 3: THERAPEUTIC LANDSCAPE & WATERFALL
+                     ═══════════════════════════════════════════════════════════════ -->
+                <div class="workspace-tab-panel" id="tab-landscape">
+                    <div class="section-header">
+                        <h2 class="section-title"><span>💊</span> Candidate Drug Sensitivity & Resistance Landscape</h2>
+                        <p class="section-desc">Comprehensive screening across 224 oncology compounds. Evaluates direct target inhibition, downstream constitutive bypass circuits, and secondary resistance mutations.</p>
+                    </div>
+
+                    <!-- shinyDeepDR-Style Plotly Waterfall Plot -->
+                    <div class="sc-card">
+                        <div class="sc-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <div class="sc-card-title"><span>📈</span> Drug Response Waterfall Plot</div>
+                                <span class="sc-card-subtitle" id="waterfallSubtitle">Ranked sensitivity profiles (Click any bar to inspect compound details)</span>
+                            </div>
+                            <div class="category-filter-group" id="waterfallViewToggle">
+                                <button class="cat-btn active" id="btn-wf-10" onclick="setWaterfallView(10)">Top 10 Actionable</button>
+                                <button class="cat-btn" id="btn-wf-25" onclick="setWaterfallView(25)">Top 25 Extended</button>
+                                <button class="cat-btn" id="btn-wf-all" onclick="setWaterfallView('all')">All Screened (224)</button>
+                            </div>
+                        </div>
+                        <div class="waterfall-canvas-box" id="waterfallPlotContainer">
+                            <div style="text-align:center;padding:120px 20px;color:var(--text-muted)">
+                                Run prediction to generate the interactive sensitivity waterfall plot.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Faceted Search & Filter Data Matrix -->
+                    <div class="sc-card">
+                        <div class="sc-card-header">
+                            <div class="sc-card-title"><span>📑</span> Evaluated Compound Evidence Matrix</div>
+                            <span class="sc-card-subtitle" id="drugFilterCount">Showing 0 of 224 evaluated compounds</span>
+                        </div>
+
+                        <!-- Filter Controls -->
+                        <div class="table-filter-bar">
+                            <div class="search-input-box">
+                                <span class="icon">🔍</span>
+                                <input type="text" id="drugSearchInput" placeholder="Search drug name or target protein (e.g. Osimertinib, EGFR, MET)...">
+                            </div>
+
+                            <select class="search-input-box" id="drugPathwaySelect" style="max-width:240px;padding:9px 12px;background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-primary);border-radius:var(--radius-sm);">
+                                <option value="all">All Canonical Pathways</option>
+                            </select>
+
+                            <div class="category-filter-group">
+                                <button class="cat-btn active" id="filter-cat-all" onclick="setDrugFilter('all')">All</button>
+                                <button class="cat-btn" id="filter-cat-sensitive" onclick="setDrugFilter('sensitive')">Sensitive (≥70%)</button>
+                                <button class="cat-btn" id="filter-cat-intermediate" onclick="setDrugFilter('intermediate')">Intermediate (50-70%)</button>
+                                <button class="cat-btn" id="filter-cat-resistant" onclick="setDrugFilter('resistant')">Resistant (<50%)</button>
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="data-table-container">
+                            <table class="sc-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Compound Name</th>
+                                        <th>Primary Target</th>
+                                        <th>Canonical Pathway</th>
+                                        <th>Predicted Sensitivity</th>
+                                        <th>Therapeutic Status</th>
+                                        <th>Clinical Evidence</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drugTableBody">
+                                    <tr>
+                                        <td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">
+                                            No drug predictions generated yet.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     TAB 4: MULTI-AGENT REASONING CONSOLE
+                     ═══════════════════════════════════════════════════════════════ -->
+                <div class="workspace-tab-panel" id="tab-agents">
+                    <div class="section-header">
+                        <h2 class="section-title"><span>⚡</span> Multi-Agent Computational Reasoning Pipeline</h2>
+                        <p class="section-desc">Four specialized, decoupled computational agents execute sequentially. Math, genomics, and PGx scoring are 100% deterministic, while the LLM functions strictly for clinical translation.</p>
+                    </div>
+
+                    <!-- 4-Step Execution Stepper -->
+                    <div class="agent-stepper">
+                        <!-- Agent 1 -->
+                        <div class="stepper-card" id="agent-step-1">
+                            <div class="stepper-info">
+                                <div class="stepper-num">1</div>
+                                <div>
+                                    <div style="font-size:1.05rem;font-weight:700;color:#ffffff;">Agent 1: Mutation Analyst</div>
+                                    <div style="font-size:0.82rem;color:var(--text-muted);">Constructs 14-D feature vector; runs RF/GB/AdaBoost ensemble and polynomial TreeExplainer SHAP.</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span class="stepper-time" style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;"></span>
+                                <span class="civic-badge level-d stepper-badge">Pending</span>
+                                <button class="cat-btn" onclick="openJsonInspector(1)">Inspect Payload 🔍</button>
+                            </div>
+                        </div>
+
+                        <!-- Agent 2 -->
+                        <div class="stepper-card" id="agent-step-2">
+                            <div class="stepper-info">
+                                <div class="stepper-num">2</div>
+                                <div>
+                                    <div style="font-size:1.05rem;font-weight:700;color:#ffffff;">Agent 2: Pathway Specialist</div>
+                                    <div style="font-size:0.82rem;color:var(--text-muted);">Traverses 8 in-memory signaling graphs; computes pathway disruption % and detects cross-talk.</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span class="stepper-time" style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;"></span>
+                                <span class="civic-badge level-d stepper-badge">Pending</span>
+                                <button class="cat-btn" onclick="openJsonInspector(2)">Inspect Payload 🔍</button>
+                            </div>
+                        </div>
+
+                        <!-- Agent 3 -->
+                        <div class="stepper-card" id="agent-step-3">
+                            <div class="stepper-info">
+                                <div class="stepper-num">3</div>
+                                <div>
+                                    <div style="font-size:1.05rem;font-weight:700;color:#ffffff;">Agent 3: Drug Strategist</div>
+                                    <div style="font-size:0.82rem;color:var(--text-muted);">Evaluates 621 oncology compounds against identified drivers; executes bypass resistance rules.</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span class="stepper-time" style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;"></span>
+                                <span class="civic-badge level-d stepper-badge">Pending</span>
+                                <button class="cat-btn" onclick="openJsonInspector(3)">Inspect Payload 🔍</button>
+                            </div>
+                        </div>
+
+                        <!-- Agent 4 -->
+                        <div class="stepper-card" id="agent-step-4">
+                            <div class="stepper-info">
+                                <div class="stepper-num">4</div>
+                                <div>
+                                    <div style="font-size:1.05rem;font-weight:700;color:#ffffff;">Agent 4: Clinical Advisor</div>
+                                    <div style="font-size:0.82rem;color:var(--text-muted);">Consolidates findings into a strict JSON schema; invokes Gemini 2.0 with deterministic fallback.</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span class="stepper-time" style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;"></span>
+                                <span class="civic-badge level-d stepper-badge">Pending</span>
+                                <button class="cat-btn" onclick="openJsonInspector(4)">Inspect Payload 🔍</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════════
+                     TAB 5: CLINICAL TUMOR BOARD REPORT
+                     ═══════════════════════════════════════════════════════════════ -->
+                <div class="workspace-tab-panel" id="tab-report">
+                    <div class="section-header">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+                            <div>
+                                <h2 class="section-title"><span>📋</span> Molecular Tumor Board Clinical Summary Report</h2>
+                                <p class="section-desc">Synthesized clinical decision-support dossier detailing prioritized therapies, resistance alerts, and mechanistic genomic rationales.</p>
+                            </div>
+                            <div style="display:flex;gap:12px;">
+                                <button class="btn-primary" onclick="exportClinicalReport()">
+                                    <span>🖨️</span> Export Clinical PDF
+                                </button>
+                                <button class="btn-secondary" onclick="downloadSessionJson()">
+                                    <span>💾</span> Snapshot JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Printable Clinical Dossier Card -->
+                    <div class="tumor-board-report" id="printableReportSection">
+                        <div class="report-banner">
+                            <div>
+                                <h1 style="font-size:1.6rem;font-weight:800;color:#ffffff;margin-bottom:4px;">XMARs Precision Oncology Consultation</h1>
+                                <p style="font-size:0.85rem;color:var(--text-muted);">Ramaiah Institute of Technology • Department of Computer Science & Engineering</p>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:0.75rem;color:var(--text-muted);" id="reportMetaTimestamp">
+                                    Status: Awaiting Analysis Run
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Clinical Narrative Content -->
+                        <div class="ai-report-card" id="clinicalReportNarrative">
+                            <p style="color:var(--text-muted);text-align:center;padding:40px;">
+                                Run Multi-Agent Reasoning in Tab 1 to generate the comprehensive Clinical Tumor Board Report.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
-    <!-- Chatbot -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         Slide-out Compound Details Drawer
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrugDrawer()"></div>
+    <div class="drug-drawer" id="drugDetailsDrawer">
+        <div class="drawer-header">
+            <div>
+                <h3 style="font-size:1.25rem;font-weight:800;color:#ffffff;" id="drawerDrugName">Drug Name</h3>
+                <span style="font-size:0.78rem;color:var(--text-muted);">Pharmacogenomic Evidence Details</span>
+            </div>
+            <button class="drawer-close-btn" onclick="closeDrugDrawer()">✕</button>
+        </div>
+
+        <div class="drawer-body">
+            <!-- Target & Pathway -->
+            <div style="display:flex;gap:16px;margin-bottom:20px;">
+                <div style="flex:1;background:var(--bg-surface);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+                    <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Direct Target</div>
+                    <div style="font-size:1.05rem;font-weight:700;color:var(--accent-cyan);margin-top:2px;" id="drawerTargetGene">EGFR</div>
+                </div>
+                <div style="flex:1;background:var(--bg-surface);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+                    <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;">Pathway</div>
+                    <div style="font-size:0.95rem;font-weight:700;color:#ffffff;margin-top:2px;" id="drawerPathway">RTK Signaling</div>
+                </div>
+            </div>
+
+            <!-- Gauges -->
+            <div style="background:var(--bg-surface);padding:16px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:6px;">
+                    <span style="color:var(--text-secondary);">Predicted Sensitivity</span>
+                    <strong style="color:var(--accent-emerald);" id="drawerSensVal">72%</strong>
+                </div>
+                <div style="width:100%;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-bottom:14px;">
+                    <div id="drawerSensBar" style="width:72%;height:100%;background:var(--accent-emerald);"></div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:6px;">
+                    <span style="color:var(--text-secondary);">Predicted Resistance</span>
+                    <strong style="color:var(--accent-rose);" id="drawerResVal">28%</strong>
+                </div>
+                <div style="width:100%;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">
+                    <div id="drawerResBar" style="width:28%;height:100%;background:var(--accent-rose);"></div>
+                </div>
+            </div>
+
+            <!-- Mechanistic Rationale -->
+            <div style="margin-bottom:24px;">
+                <h4 style="font-size:0.9rem;font-weight:700;color:#ffffff;margin-bottom:8px;">Mechanistic Rationale & Rules:</h4>
+                <ul id="drawerRationale" style="font-size:0.85rem;color:var(--text-secondary);padding-left:18px;line-height:1.6;"></ul>
+            </div>
+
+            <!-- External Verification -->
+            <div style="margin-top:auto;padding-top:20px;border-top:1px solid var(--border-subtle);">
+                <a id="drawerPubchemLink" href="#" target="_blank" class="clinical-preset-pill" style="justify-content:center;text-decoration:none;">
+                    <span>External PubChem Molecular Verification ↗</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         JSON State Inspector Modal
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="jsonInspectorModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px;">
+        <div style="background:var(--bg-sidebar);border:1px solid var(--border-card);border-radius:var(--radius-lg);width:700px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-card);">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-size:1.05rem;font-weight:700;color:#ffffff;">Agent Output State Inspector</h3>
+                <button class="drawer-close-btn" onclick="closeJsonInspector()">✕</button>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:20px;">
+                <pre id="jsonInspectorContent" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#38bdf8;background:#050914;padding:16px;border-radius:8px;overflow-x:auto;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Floating Chatbot Assistant
+         ═══════════════════════════════════════════════════════════════ -->
     <button class="chatbot-toggle" id="chatToggle" onclick="toggleChat()">💬</button>
     <div class="chatbot-panel" id="chatPanel">
         <div class="chatbot-header">
             <div>
                 <div class="chat-title">🧬 Genomics Assistant</div>
-                <div class="chat-subtitle">Powered by Gemini 2.5 Flash</div>
+                <div class="chat-subtitle">Powered by Gemini 2.0 Flash</div>
             </div>
             <button class="chat-close" onclick="toggleChat()">✕</button>
         </div>
         <div class="chatbot-messages" id="chatMessages">
-            <div class="chat-msg bot">Hi! I'm your cancer genomics assistant. Ask me about mutations, pathways, drug
-                resistance, or anything related to your analysis. 🧬</div>
+            <div class="chat-msg bot">Hi! I'm your XMARs genomics assistant. Ask me about mutations, pathways, drug resistance, or therapeutic options. 🧬</div>
         </div>
         <div class="chatbot-input-row">
             <input type="text" id="chatInput" placeholder="Ask about drugs, genes, pathways..."
@@ -1555,449 +619,12 @@
         </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/plots.js') }}?v=2.0"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.0"></script>
+
+    <!-- Legacy Compatibility Helpers for Existing Routes -->
     <script>
-        let selectedGenes = {};
-        let geneData = [];
-        let predictionResults = null;
-
-        document.addEventListener('DOMContentLoaded', loadGenes);
-
-        async function loadGenes() {
-            try {
-                const res = await fetch('/api/genes');
-                const data = await res.json();
-                geneData = data.genes;
-                renderGeneGrid(geneData);
-            } catch (err) { console.error('Failed to load genes:', err); }
-        }
-
-        function renderGeneGrid(genes) {
-            const grid = document.getElementById('geneGrid');
-            grid.innerHTML = genes.map(g => `
-            <div class="gene-chip" id="chip-${g.symbol}" onclick="toggleGene('${g.symbol}')">
-                <span class="check-box"></span>
-                <span class="gene-label">${g.symbol}</span>
-                <span class="gene-meta">${g.direct_drug_count}💊</span>
-            </div>
-        `).join('');
-        }
-
-        function toggleGene(gene) {
-            if (selectedGenes[gene] !== undefined) {
-                delete selectedGenes[gene];
-                document.getElementById(`chip-${gene}`).classList.remove('selected');
-            } else {
-                selectedGenes[gene] = 0.5;
-                document.getElementById(`chip-${gene}`).classList.add('selected');
-            }
-            updateVafSection();
-            updateButtons();
-        }
-
-        function updateVafSection() {
-            const section = document.getElementById('vafSection');
-            const grid = document.getElementById('vafGrid');
-            const genes = Object.keys(selectedGenes);
-            if (genes.length === 0) { section.classList.remove('visible'); return; }
-            section.classList.add('visible');
-            grid.innerHTML = genes.map(g => `
-            <div class="vaf-item">
-                <span class="gene-name">${g}</span>
-                <input type="range" class="vaf-slider" min="0.05" max="1" step="0.05"
-                       value="${selectedGenes[g]}"
-                       oninput="selectedGenes['${g}']=parseFloat(this.value);this.nextElementSibling.textContent=this.value">
-                <span class="vaf-value">${selectedGenes[g].toFixed(2)}</span>
-            </div>
-        `).join('');
-        }
-
-        function updateButtons() {
-            const has = Object.keys(selectedGenes).length > 0;
-            document.getElementById('predictBtn').disabled = !has;
-            document.getElementById('aiBtn').disabled = !has;
-        }
-
-        function clearSelection() {
-            Object.keys(selectedGenes).forEach(g => {
-                const c = document.getElementById(`chip-${g}`);
-                if (c) c.classList.remove('selected');
-            });
-            selectedGenes = {};
-            updateVafSection();
-            updateButtons();
-            document.getElementById('results-section').classList.remove('visible');
-        }
-
-        async function runPrediction() {
-            const mutations = Object.entries(selectedGenes).map(([gene, vaf]) => ({ gene, vaf }));
-            if (!mutations.length) return;
-            document.getElementById('loadingOverlay').classList.add('visible');
-            try {
-                const res = await fetch('/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mutations })
-                });
-                const data = await res.json();
-                if (data.error) { alert('Error: ' + data.error); return; }
-                predictionResults = data;
-                renderResults(data);
-            } catch (err) {
-                alert('Prediction failed. Check that the server is running.');
-            } finally {
-                document.getElementById('loadingOverlay').classList.remove('visible');
-            }
-        }
-
-        function renderResults(data) {
-            const section = document.getElementById('results-section');
-            section.classList.add('visible');
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            const s = data.mutation_summary;
-            const topSensitive = data.drug_predictions.filter(d => d.resistance_score <= 0.35).length;
-            document.getElementById('statsGrid').innerHTML = `
-            <div class="stat-card"><div class="stat-value">${s.gene_count}</div><div class="stat-label">Genes Mutated</div></div>
-            <div class="stat-card"><div class="stat-value">${s.pathways_affected}</div><div class="stat-label">Pathways Affected</div></div>
-            <div class="stat-card"><div class="stat-value">${s.drugs_evaluated}</div><div class="stat-label">Drugs Evaluated</div></div>
-            <div class="stat-card"><div class="stat-value">${topSensitive}</div><div class="stat-label">Likely Sensitive</div></div>
-        `;
-
-            renderDrugCards(data.drug_predictions.slice(0, 10));
-            renderPathways(data.affected_pathways);
-            
-            // Ensure UI buttons and selection state are in sync
-            syncUIWithSelectedGenes();
-        }
-
-        function getCategoryStyle(cat) {
-            if (cat.includes('Likely Sensitive')) return { bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)', color: '#86efac', barColor: '#22c55e' };
-            if (cat.includes('Potentially Sensitive')) return { bg: 'rgba(132,204,22,0.15)', border: 'rgba(132,204,22,0.4)', color: '#bef264', barColor: '#84cc16' };
-            if (cat.includes('Uncertain')) return { bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.4)', color: '#fde047', barColor: '#eab308' };
-            if (cat.includes('Potentially Resistant')) return { bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)', color: '#fdba74', barColor: '#f97316' };
-            return { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', color: '#fca5a5', barColor: '#ef4444' };
-        }
-
-        function renderDrugCards(drugs) {
-            document.getElementById('drugCardsGrid').innerHTML = drugs.map((d, i) => {
-                const pct = Math.round(d.resistance_score * 100);
-                const sensPct = Math.round(d.sensitivity_score * 100);
-                const cs = getCategoryStyle(d.category);
-                return `
-                <div class="drug-card">
-                    <div class="drug-rank-badge">${i + 1}</div>
-                    <div class="drug-card-name">${d.drug_name}</div>
-                    <div class="drug-card-target">${d.targets || 'Unknown target'}</div>
-                    <div class="drug-bar-row">
-                        <span class="drug-bar-label">Sensitivity</span>
-                        <div class="drug-bar-bg"><div class="drug-bar-fill" style="width:${sensPct}%;background:${cs.barColor}"></div></div>
-                        <span class="drug-bar-value" style="color:${cs.color}">${sensPct}%</span>
-                    </div>
-                    <div class="drug-bar-row">
-                        <span class="drug-bar-label">Resistance</span>
-                        <div class="drug-bar-bg"><div class="drug-bar-fill" style="width:${pct}%;background:var(--accent-red)"></div></div>
-                        <span class="drug-bar-value">${pct}%</span>
-                    </div>
-                    <div class="drug-card-category" style="background:${cs.bg};border:1px solid ${cs.border};color:${cs.color}">${d.category}</div>
-                    <div class="drug-card-pathway">📂 ${d.pathway || 'General'}</div>
-                </div>
-            `;
-            }).join('');
-        }
-
-        function renderPathways(pathways) {
-            document.getElementById('pathwayCards').innerHTML = pathways.map(pw => {
-                const pct = Math.round(pw.activation_score * 100);
-                const mutGenes = pw.mutated_genes.map(g => g.gene);
-                const drugTargets = pw.drug_targets || [];
-                return `
-                <div class="pathway-card">
-                    <div class="pathway-name">${pw.name.replace(/_/g, ' ')}</div>
-                    <div class="pathway-desc">${pw.description}</div>
-                    <div class="pathway-genes">
-                        ${mutGenes.map(g => `<span class="pathway-gene-tag mutated">${g} (mutated)</span>`).join('')}
-                        ${drugTargets.map(t => `<span class="pathway-gene-tag">${t} (drug target)</span>`).join('')}
-                    </div>
-                    <div class="pathway-activation">
-                        Activation: ${pct}%
-                        <div class="pathway-activation-bar"><div class="pathway-activation-fill" style="width:${pct}%"></div></div>
-                    </div>
-                </div>
-            `;
-            }).join('');
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                if ((b.getAttribute('onclick') || '').includes(tabName)) b.classList.add('active');
-            });
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-        }
-
-        // ═══ AI Agent Pipeline Analysis ═══
-        let aiPipelineResult = null;
-
-        async function runAIAnalysis(autoSwitch = true) {
-            const mutations = Object.entries(selectedGenes).map(([gene, vaf]) => ({ gene, vaf }));
-            if (!mutations.length) return;
-
-            const section = document.getElementById('results-section');
-            section.classList.add('visible');
-            document.getElementById('aiTabBtn').style.display = '';
-            document.getElementById('shapTabBtn').style.display = '';
-            
-            if (autoSwitch) {
-                switchTab('ai');
-            }
-            
-            document.getElementById('aiLoading').classList.add('visible');
-            document.getElementById('aiReportContent').style.display = 'none';
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            // Reset agent log
-            resetAgentLog();
-            simulateAgentProgress();
-
-            try {
-                const res = await fetch('/predict-ai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mutations })
-                });
-                const data = await res.json();
-                if (data.error) { alert('AI error: ' + data.error); return; }
-
-                aiPipelineResult = data;
-
-                // Update agent log with real results
-                updateAgentLog(data.execution_log);
-
-                // Show report
-                document.getElementById('aiLoading').classList.remove('visible');
-                document.getElementById('aiReportContent').style.display = 'block';
-                document.getElementById('aiReport').innerHTML = markdownToHtml(data.clinical_report || 'No report generated.');
-
-                // Update subtitle
-                const geminiTag = data.gemini_used ? '✅ Gemini explanation' : '📋 Structured report (Gemini unavailable)';
-                document.getElementById('aiReportSubtitle').textContent =
-                    `Pipeline: ${data.pipeline_elapsed_seconds}s | ${geminiTag} | ${data.mutations_analyzed.join(', ')}`;
-
-                // Render SHAP tab
-                renderSHAPTab(data);
-
-                // Also render drug results if we have them
-                if (data.drug_strategy && data.drug_strategy.top_10) {
-                    renderDrugCards(data.drug_strategy.top_10);
-                }
-                if (data.pathway_analysis && data.pathway_analysis.affected_pathways) {
-                    renderPathways(data.pathway_analysis.affected_pathways);
-                }
-
-            } catch (err) {
-                console.error('AI pipeline failed:', err);
-                alert('AI pipeline failed: ' + err.message);
-            } finally {
-                document.getElementById('aiLoading').classList.remove('visible');
-            }
-        }
-
-        function resetAgentLog() {
-            for (let i = 1; i <= 4; i++) {
-                const el = document.getElementById(`agent-log-${i}`);
-                el.className = 'agent-log-item pending';
-                el.querySelector('.agent-status').textContent = 'Pending';
-                el.querySelector('.agent-status').className = 'agent-status pending';
-                el.querySelector('.agent-elapsed').textContent = '';
-            }
-        }
-
-        function simulateAgentProgress() {
-            // Simulate agent-by-agent progress while waiting for the real response
-            const agentNames = ['Analyzing mutations (SHAP)...', 'Mapping pathways...', 'Ranking drugs...', 'Generating report...'];
-            let idx = 0;
-            const interval = setInterval(() => {
-                if (idx >= 4) { clearInterval(interval); return; }
-                const el = document.getElementById(`agent-log-${idx + 1}`);
-                el.className = 'agent-log-item running';
-                el.querySelector('.agent-status').textContent = 'Running';
-                el.querySelector('.agent-status').className = 'agent-status running';
-                document.getElementById('aiLoadingText').textContent = agentNames[idx];
-                if (idx > 0) {
-                    const prev = document.getElementById(`agent-log-${idx}`);
-                    prev.className = 'agent-log-item completed';
-                    prev.querySelector('.agent-status').textContent = '✓ Done';
-                    prev.querySelector('.agent-status').className = 'agent-status completed';
-                }
-                idx++;
-            }, 2500);
-        }
-
-        function updateAgentLog(executionLog) {
-            if (!executionLog) return;
-            const agentOrder = ['Mutation Analyst', 'Pathway Specialist', 'Drug Strategist', 'Clinical Advisor'];
-            agentOrder.forEach((name, i) => {
-                const entry = executionLog.find(e => e.agent === name);
-                const el = document.getElementById(`agent-log-${i + 1}`);
-                if (entry) {
-                    const ok = entry.status === 'completed';
-                    el.className = `agent-log-item ${ok ? 'completed' : 'failed'}`;
-                    el.querySelector('.agent-status').textContent = ok ? '✓ Done' : '✗ Failed';
-                    el.querySelector('.agent-status').className = `agent-status ${ok ? 'completed' : 'failed'}`;
-                    if (entry.elapsed) el.querySelector('.agent-elapsed').textContent = `${entry.elapsed}s`;
-                }
-            });
-        }
-
-        // ═══ SHAP Rendering ═══
-        function renderSHAPTab(data) {
-            const container = document.getElementById('shapContent');
-            if (!data.mutation_analysis) { container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">No SHAP data available</p>'; return; }
-
-            let html = '';
-
-            // Gene mutation cards with SHAP classification
-            const geneAnalyses = data.mutation_analysis.gene_analyses || [];
-            if (geneAnalyses.length > 0) {
-                html += '<h3 style="color:var(--accent-cyan);margin-bottom:12px">Mutation Classification (SHAP-based)</h3>';
-                for (const ga of geneAnalyses) {
-                    const cls = ga.classification || 'unknown';
-                    const badgeClass = cls.includes('driver') ? 'driver' : cls === 'likely_passenger' ? 'passenger' : 'unknown';
-                    const clsLabel = cls.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    html += `<div class="shap-gene-card">
-                    <div class="shap-gene-header">
-                        <span class="shap-gene-name">${ga.gene}</span>
-                        <span class="shap-gene-badge ${badgeClass}">${clsLabel}</span>
-                        <span style="font-size:0.75rem;color:var(--text-muted)">VAF: ${(ga.vaf || 0).toFixed(2)} | Confidence: ${((ga.confidence || 0) * 100).toFixed(0)}%</span>
-                    </div>
-                    ${ga.shap_features && ga.shap_features.length > 0 ? renderShapFeatureList(ga.shap_features) : '<div style="font-size:0.8rem;color:var(--text-muted)">No SHAP features available</div>'}
-                </div>`;
-                }
-            }
-
-            // SHAP bar charts per model
-            const chartData = data.mutation_analysis.chart_data || {};
-            const modelNames = Object.keys(chartData);
-            if (modelNames.length > 0) {
-                html += '<h3 style="color:var(--accent-cyan);margin:20px 0 12px">Feature Importance by Model</h3>';
-                html += '<div class="shap-model-tabs" id="shapModelTabs">';
-                modelNames.forEach((mn, i) => {
-                    const label = mn.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    html += `<button class="shap-model-tab ${i === 0 ? 'active' : ''}" onclick="switchShapModel('${mn}')">${label}</button>`;
-                });
-                html += '</div>';
-
-                for (const mn of modelNames) {
-                    const cd = chartData[mn];
-                    if (cd.error) continue;
-                    html += `<div class="shap-model-panel" id="shap-panel-${mn}" style="${mn !== modelNames[0] ? 'display:none' : ''}">`;
-                    if (cd.bar_chart) {
-                        html += renderShapBarChart(cd.bar_chart, mn);
-                    }
-                    if (cd.waterfall) {
-                        html += '<h4 style="color:var(--text-secondary);margin:16px 0 8px;font-size:0.85rem">Feature Direction (Sample 1)</h4>';
-                        html += renderShapWaterfall(cd.waterfall);
-                    }
-                    html += '</div>';
-                }
-            }
-
-            // Consensus features
-            const consensus = data.mutation_analysis.shap_results?.consensus_features;
-            if (consensus && consensus.length > 0) {
-                html += '<h3 style="color:var(--accent-cyan);margin:20px 0 12px">Consensus Features (Important Across All Models)</h3>';
-                html += '<div class="shap-bar-chart">';
-                const maxVal = Math.max(...consensus.map(f => Math.max(...Object.values(f.models || {}))));
-                for (const feat of consensus.slice(0, 10)) {
-                    const avg = Object.values(feat.models || {}).reduce((a, b) => a + b, 0) / Math.max(Object.keys(feat.models || {}).length, 1);
-                    const pct = maxVal > 0 ? (avg / maxVal * 100) : 0;
-                    html += `<div class="shap-bar-row">
-                    <div class="shap-bar-label">${feat.feature.replace('ohe_', '').replace(/_/g, ' ')}</div>
-                    <div class="shap-bar-bg"><div class="shap-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent-purple),var(--accent-cyan))"></div></div>
-                    <div class="shap-bar-value">${avg.toFixed(4)}</div>
-                </div>`;
-                }
-                html += '</div>';
-            }
-
-            container.innerHTML = html;
-        }
-
-        function renderShapFeatureList(features) {
-            let html = '<div style="margin-top:8px">';
-            for (const f of features.slice(0, 5)) {
-                const models = f.models || {};
-                const avgImp = Object.values(models).reduce((a, b) => a + (b.importance || 0), 0) / Math.max(Object.keys(models).length, 1);
-                html += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:0.78rem">
-                <span style="color:var(--text-muted);min-width:140px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap">${f.feature.replace('ohe_', '').replace(/_/g, ' ')}</span>
-                <span style="color:var(--accent-purple);font-weight:600;min-width:70px">SHAP: ${avgImp.toFixed(4)}</span>
-                <span style="color:var(--text-muted);font-size:0.7rem">val=${f.value}</span>
-            </div>`;
-            }
-            html += '</div>';
-            return html;
-        }
-
-        function renderShapBarChart(barChart, modelName) {
-            const maxVal = Math.max(...barChart.values);
-            let html = '<div class="shap-bar-chart">';
-            for (let i = 0; i < barChart.labels.length; i++) {
-                const pct = maxVal > 0 ? (barChart.values[i] / maxVal * 100) : 0;
-                html += `<div class="shap-bar-row">
-                <div class="shap-bar-label">${barChart.labels[i]}</div>
-                <div class="shap-bar-bg"><div class="shap-bar-fill" style="width:${pct}%;background:var(--gradient-primary)"></div></div>
-                <div class="shap-bar-value">${barChart.values[i].toFixed(4)}</div>
-            </div>`;
-            }
-            html += '</div>';
-            return html;
-        }
-
-        function renderShapWaterfall(waterfall) {
-            const maxAbs = Math.max(...waterfall.values.map(Math.abs));
-            let html = '<div class="shap-bar-chart">';
-            for (let i = 0; i < waterfall.labels.length; i++) {
-                const val = waterfall.values[i];
-                const pct = maxAbs > 0 ? (Math.abs(val) / maxAbs * 100) : 0;
-                const color = waterfall.colors[i];
-                html += `<div class="shap-bar-row">
-                <div class="shap-bar-label">${waterfall.labels[i]}</div>
-                <div class="shap-bar-bg"><div class="shap-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-                <div class="shap-bar-value" style="color:${color}">${val > 0 ? '+' : ''}${val.toFixed(4)}</div>
-            </div>`;
-            }
-            html += '</div>';
-            return html;
-        }
-
-        function switchShapModel(modelName) {
-            document.querySelectorAll('.shap-model-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.shap-model-panel').forEach(p => p.style.display = 'none');
-            document.querySelectorAll('.shap-model-tab').forEach(t => {
-                if (t.onclick.toString().includes(modelName)) t.classList.add('active');
-            });
-            const panel = document.getElementById(`shap-panel-${modelName}`);
-            if (panel) panel.style.display = 'block';
-        }
-
-        function markdownToHtml(text) {
-            return text
-                .replace(/### (.*)/g, '<h3>$1</h3>')
-                .replace(/## (.*)/g, '<h2>$1</h2>')
-                .replace(/# (.*)/g, '<h1>$1</h1>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                .replace(/^\- (.*)/gm, '<li>$1</li>')
-                .replace(/^\d+\. (.*)/gm, '<li>$1</li>')
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/\n/g, '<br>')
-                .replace(/^/, '<p>')
-                .replace(/$/, '</p>');
-        }
-
-        // ═══ Chatbot ═══
         function toggleChat() {
             document.getElementById('chatPanel').classList.toggle('visible');
             if (document.getElementById('chatPanel').classList.contains('visible')) {
@@ -2029,14 +656,13 @@
                 document.getElementById('typing-indicator')?.remove();
 
                 if (data.error) {
-                    messages.innerHTML += `<div class="chat-msg bot">Sorry, I encountered an error. Please try again in a moment.</div>`;
+                    messages.innerHTML += `<div class="chat-msg bot">Error: ${escapeHtml(data.error)}</div>`;
                 } else {
-                    const reply = markdownToHtml(data.reply);
-                    messages.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
+                    messages.innerHTML += `<div class="chat-msg bot">${markdownToHtml(data.reply)}</div>`;
                 }
             } catch (err) {
                 document.getElementById('typing-indicator')?.remove();
-                messages.innerHTML += `<div class="chat-msg bot">Connection error. Please check the server.</div>`;
+                messages.innerHTML += `<div class="chat-msg bot">Connection error. Check backend server.</div>`;
             }
             messages.scrollTop = messages.scrollHeight;
         }
@@ -2047,7 +673,6 @@
             return div.innerHTML;
         }
 
-        // ═══ PDF Parsing Logic ═══
         function handleFileUpload() {
             const input = document.getElementById('pdfInput');
             const status = document.getElementById('uploadStatus');
@@ -2055,8 +680,8 @@
             
             if (input.files.length > 0) {
                 const file = input.files[0];
-                status.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-                parseBtn.style.display = 'inline-block';
+                status.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                parseBtn.style.display = 'block';
             } else {
                 status.textContent = 'No file selected';
                 parseBtn.style.display = 'none';
@@ -2070,16 +695,14 @@
             const formData = new FormData();
             formData.append('file', input.files[0]);
 
-            document.getElementById('loadingOverlay').classList.add('visible');
-            document.getElementById('loadingOverlay').querySelector('.loading-text').textContent = "Parsing PDF & Extracting Mutations...";
-
+            showLoading("Parsing PDF Diagnostic Report & Extracting Mutations...");
             try {
                 const res = await fetch('/parse-pdf', {
                     method: 'POST',
                     body: formData
                 });
                 const data = await res.json();
-                document.getElementById('loadingOverlay').classList.remove('visible');
+                hideLoading();
 
                 if (data.error) {
                     alert(`Parsing Error: ${data.error}`);
@@ -2088,7 +711,7 @@
 
                 renderVerificationTable(data.mutations);
             } catch (err) {
-                document.getElementById('loadingOverlay').classList.remove('visible');
+                hideLoading();
                 alert(`Connection error: ${err.message}`);
             }
         }
@@ -2096,22 +719,16 @@
         function renderVerificationTable(mutations) {
             const card = document.getElementById('verificationCard');
             const tbody = document.getElementById('verificationTableBody');
-            const uploadCard = document.getElementById('uploadCard');
-            const inputCard = document.getElementById('inputCard');
-
             tbody.innerHTML = '';
             
             if (!mutations || mutations.length === 0) {
-                addMutationRow(); 
+                addMutationRow();
             } else {
                 mutations.forEach(m => {
                     addMutationRow(m.gene, m.vaf, m.mutation, m.requires_manual_vaf);
                 });
             }
 
-            // Hide upload, show verification
-            uploadCard.style.display = 'none';
-            inputCard.style.display = 'none';
             card.style.display = 'block';
             card.scrollIntoView({ behavior: 'smooth' });
         }
@@ -2119,50 +736,19 @@
         function addMutationRow(gene = '', vaf = 0.5, mutation = 'p.', manual = false) {
             const tbody = document.getElementById('verificationTableBody');
             const tr = document.createElement('tr');
-            if (manual) tr.style.backgroundColor = 'rgba(255, 150, 0, 0.05)';
-            
-            const vafValue = (vaf === null || vaf === undefined) ? '' : vaf;
-            const warning = manual ? '<span title="Structural alteration: Please verify VAF manually" style="cursor:help;margin-left:5px">⚠️</span>' : '';
+            const vafValue = (vaf === null || vaf === undefined) ? '0.5' : vaf;
 
             tr.innerHTML = `
-                <td><input type="text" class="v-gene" value="${gene}" placeholder="e.g. EGFR" style="${manual ? 'border-left: 3px solid var(--accent-purple)' : ''}"></td>
-                <td><input type="text" class="v-mut" value="${mutation}" placeholder="e.g. p.G12C"> ${warning}</td>
-                <td><input type="number" class="v-vaf" value="${vafValue}" min="0" max="1" step="0.001" placeholder="${manual ? 'Manual VAF' : '0.5'}" ${manual ? 'required' : ''}></td>
-                <td style="text-align:center"><button class="remove-btn" onclick="this.closest('tr').remove()">🗑️</button></td>
+                <td><input type="text" class="v-gene" value="${gene}" placeholder="e.g. EGFR" style="width:100%;padding:6px;background:var(--bg-input);border:1px solid var(--border-card);color:#fff;border-radius:4px;"></td>
+                <td><input type="text" class="v-mut" value="${mutation}" placeholder="e.g. p.L858R" style="width:100%;padding:6px;background:var(--bg-input);border:1px solid var(--border-card);color:#fff;border-radius:4px;"></td>
+                <td><input type="number" class="v-vaf" value="${vafValue}" min="0" max="1" step="0.01" style="width:100%;padding:6px;background:var(--bg-input);border:1px solid var(--border-card);color:#fff;border-radius:4px;"></td>
+                <td style="text-align:center"><button class="cat-btn" onclick="this.closest('tr').remove()">🗑️</button></td>
             `;
             tbody.appendChild(tr);
         }
 
         function cancelVerification() {
             document.getElementById('verificationCard').style.display = 'none';
-            document.getElementById('uploadCard').style.display = 'block';
-            document.getElementById('inputCard').style.display = 'block';
-        }
-
-        function syncUIWithSelectedGenes() {
-            const genes = Object.keys(selectedGenes);
-            console.log("Syncing UI for genes:", genes);
-            
-            // Update gene chips in the grid
-            document.querySelectorAll('.gene-chip').forEach(chip => {
-                const gene = chip.id.replace('chip-', '').trim().toUpperCase();
-                const isSelected = genes.some(g => g.trim().toUpperCase() === gene);
-                
-                if (isSelected) {
-                    chip.classList.add('selected');
-                } else {
-                    chip.classList.remove('selected');
-                }
-            });
-            
-            updateVafSection();
-            updateButtons();
-            
-            // Also update the results-section AI button
-            const resultsAiBtn = document.getElementById('resultsAiBtn');
-            if (resultsAiBtn) {
-                resultsAiBtn.disabled = genes.length === 0;
-            }
         }
 
         function getVerifiedMutations() {
@@ -2176,7 +762,7 @@
                     const gene = geneInput.value.toUpperCase().trim();
                     const mutation = mutInput.value.trim();
                     const vaf = parseFloat(vafInput.value);
-                    if (gene && mutation && !isNaN(vaf)) {
+                    if (gene && !isNaN(vaf)) {
                         mutations.push({ gene, mutation, vaf: Math.min(Math.max(vaf, 0), 1) });
                     }
                 }
@@ -2187,49 +773,27 @@
         async function confirmAndPredict() {
             const mutations = getVerifiedMutations();
             if (mutations.length === 0) {
-                alert("Please add at least one complete mutation (Gene + Mutation + VAF).");
+                alert("Please add at least one valid mutation.");
                 return;
             }
-            // Reset manual selection
             selectedGenes = {};
             mutations.forEach(m => { selectedGenes[m.gene] = m.vaf; });
-            
-            // Sync the manual input UI so buttons are enabled and genes are checked
             syncUIWithSelectedGenes();
-
-            // Hide verification card and show input card (now synced)
             document.getElementById('verificationCard').style.display = 'none';
-            document.getElementById('uploadCard').style.display = 'block';
-            document.getElementById('inputCard').style.display = 'block';
-            
-            // Run prediction
             runPrediction();
         }
 
         async function confirmAndAnalyze() {
             const mutations = getVerifiedMutations();
             if (mutations.length === 0) {
-                alert("Please add at least one complete mutation (Gene + Mutation + VAF).");
+                alert("Please add at least one valid mutation.");
                 return;
             }
-
-            // Reset manual selection
             selectedGenes = {};
             mutations.forEach(m => { selectedGenes[m.gene] = m.vaf; });
-            
-            // Sync the manual input UI
             syncUIWithSelectedGenes();
-
-            // 1. Show local results immediately
-            await runPrediction();
-
-            // 2. Hide verification card and show others
             document.getElementById('verificationCard').style.display = 'none';
-            document.getElementById('uploadCard').style.display = 'block';
-            document.getElementById('inputCard').style.display = 'block';
-
-            // 3. Start AI analysis in background
-            runAIAnalysis(false); 
+            runAIAnalysis();
         }
     </script>
 </body>

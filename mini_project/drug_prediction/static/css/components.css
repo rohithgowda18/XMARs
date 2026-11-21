@@ -1,0 +1,597 @@
+/* ═══════════════════════════════════════════════════════════════
+   components.css — Precision Oncology UI Components for XMARs
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Section & Card Architecture ────────────────────────────── */
+.section-header {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-desc {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    max-width: 800px;
+}
+
+.sc-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sc-card:hover {
+    border-color: var(--border-hover);
+}
+
+.sc-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.sc-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sc-card-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* ── Intake & Presets ───────────────────────────────────────── */
+.presets-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: rgba(2, 132, 199, 0.08);
+    border: 1px solid rgba(2, 132, 199, 0.25);
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+}
+
+.presets-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+}
+
+.presets-chips {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.clinical-preset-pill {
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.clinical-preset-pill:hover {
+    background: rgba(2, 132, 199, 0.2);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.clinical-preset-pill .tag {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+}
+
+/* ── Dual Intake Grid ───────────────────────────────────────── */
+.intake-dual-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 24px;
+}
+
+@media (max-width: 900px) {
+    .intake-dual-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dropzone-box {
+    border: 2px dashed rgba(56, 189, 248, 0.25);
+    background: rgba(8, 13, 26, 0.4);
+    border-radius: var(--radius-lg);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.dropzone-box:hover, .dropzone-box.drag-over {
+    border-color: var(--accent-cyan);
+    background: rgba(6, 182, 212, 0.06);
+    box-shadow: var(--shadow-glow);
+}
+
+.dropzone-icon {
+    font-size: 2.8rem;
+    margin-bottom: 12px;
+}
+
+/* ── Molecular Reasoning & Pathogenicity Grid ───────────────── */
+.pathogenicity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.pathogenicity-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pathogenicity-card.driver {
+    border-left: 4px solid var(--accent-rose);
+}
+
+.pathogenicity-card.passenger {
+    border-left: 4px solid var(--accent-emerald);
+}
+
+.gene-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.gene-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.call-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+}
+
+.call-pill.driver {
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.call-pill.passenger {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.model-voting-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+/* ── CellHit Diverging SHAP Waterfall ───────────────────────── */
+.shap-diverging-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    min-height: 380px;
+}
+
+.shap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-box.resistance { background: var(--accent-rose); }
+.legend-box.sensitivity { background: var(--accent-cyan); }
+
+/* ── shinyDeepDR Sensitivity Waterfall Plot ─────────────────── */
+.waterfall-header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.waterfall-canvas-box {
+    width: 100%;
+    height: 440px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    position: relative;
+}
+
+/* ── Faceted Drug Table Matrix ──────────────────────────────── */
+.table-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.search-input-box {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+}
+
+.search-input-box input {
+    width: 100%;
+    padding: 9px 14px 9px 36px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.search-input-box input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.search-input-box .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.category-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cat-btn {
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cat-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-glass-strong);
+}
+
+.cat-btn.active {
+    background: rgba(2, 132, 199, 0.2);
+    border-color: var(--accent-primary);
+    color: #ffffff;
+}
+
+/* Responsive Table */
+.data-table-container {
+    overflow-x: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    text-align: left;
+}
+
+.sc-table th {
+    padding: 12px 16px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: rgba(11, 18, 34, 0.95);
+    border-bottom: 1px solid var(--border-subtle);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+}
+
+.sc-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+.sc-table tr:hover td {
+    background: rgba(56, 189, 248, 0.04);
+}
+
+.civic-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.civic-badge.level-a { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+.civic-badge.level-b { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
+.civic-badge.level-c { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+.civic-badge.level-d { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #64748b; }
+
+/* ── Slide-Out Drug Details Drawer ─────────────────────────── */
+.drawer-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.drawer-backdrop.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.drug-drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 480px;
+    max-width: 90vw;
+    background: var(--bg-sidebar);
+    border-left: 1px solid var(--border-card);
+    z-index: 110;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drug-drawer.open {
+    transform: translateX(0);
+}
+
+.drawer-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.drawer-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.drawer-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.drawer-close-btn:hover {
+    color: #ffffff;
+    background: var(--accent-rose);
+}
+
+/* ── Multi-Agent Reasoning Stepper ──────────────────────────── */
+.agent-stepper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stepper-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+}
+
+.stepper-card.active {
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-glow);
+    background: rgba(2, 132, 199, 0.08);
+}
+
+.stepper-card.completed {
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.stepper-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stepper-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.stepper-card.completed .stepper-num {
+    background: var(--accent-emerald);
+    border-color: var(--accent-emerald);
+    color: #ffffff;
+}
+
+.stepper-card.active .stepper-num {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #ffffff;
+    box-shadow: var(--shadow-glow);
+}
+
+/* ── Tumor Board Report View ────────────────────────────────── */
+.tumor-board-report {
+    background: #0d1527;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    box-shadow: var(--shadow-card);
+}
+
+.report-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 24px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 24px;
+}
+
+.report-callout {
+    padding: 16px 20px;
+    border-radius: var(--radius-md);
+    margin: 18px 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.report-callout.sensitive {
+    background: rgba(16, 185, 129, 0.08);
+    border-left: 4px solid var(--accent-emerald);
+}
+
+.report-callout.resistant {
+    background: rgba(244, 63, 94, 0.08);
+    border-left: 4px solid var(--accent-rose);
+}
+
+.report-callout.caution {
+    background: rgba(245, 158, 11, 0.08);
+    border-left: 4px solid var(--accent-amber);
+}
+
+/* ── Print Media Optimization ───────────────────────────────── */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    .app-sidebar, .workspace-topbar, .topbar-actions, .presets-banner, .btn-row, #chatToggle, #chatPanel, .table-filter-bar {
+        display: none !important;
+    }
+    .app-main {
+        margin-left: 0 !important;
+    }
+    .workspace-canvas {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    .workspace-tab-panel {
+        display: none !important;
+    }
+    #tab-report-view {
+        display: block !important;
+    }
+    .tumor-board-report {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+}

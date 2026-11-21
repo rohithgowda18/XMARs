@@ -17,7 +17,19 @@ import os
 import json
 import time
 import logging
+import sys
 from pathlib import Path
+
+# Add directory to sys.path for robust internal module imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+# Scikit-learn unpickling compatibility shim
+try:
+    import sklearn._loss._loss as _loss
+    sys.modules['_loss'] = _loss
+except Exception:
+    pass
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -942,9 +954,14 @@ class AgentPipeline:
             # Agent 3 outputs
             'drug_strategy': {
                 'top_10': drug_result.get('top_10', []),
+                'ranked_drugs': drug_result.get('ranked_drugs', []),
                 'total_evaluated': drug_result.get('summary', {}).get('total_drugs_evaluated', 0),
                 'summary': drug_result.get('summary', {}),
             },
+
+            # Backward-compatible direct aliases for UI consumers
+            'drug_predictions': drug_result.get('ranked_drugs', []),
+            'affected_pathways': pathway_result.get('affected_pathways', []),
 
             # Agent 4 outputs
             'clinical_report': clinical_result.get('human_report', ''),

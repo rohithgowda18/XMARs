@@ -17,8 +17,16 @@ import shap
 import logging
 import base64
 import io
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+# Scikit-learn backwards compatibility shim for unpickling models
+try:
+    import sklearn._loss._loss as _loss
+    sys.modules['_loss'] = _loss
+except Exception:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +72,11 @@ class SHAPExplainer:
         for name, filename in model_files.items():
             path = MODEL_DIR / filename
             if path.exists():
-                self.models[name] = joblib.load(path)
-                logger.info(f"Loaded model: {name}")
+                try:
+                    self.models[name] = joblib.load(path)
+                    logger.info(f"Loaded model: {name}")
+                except Exception as e:
+                    logger.warning(f"Could not load model {name}: {e}")
             else:
                 logger.warning(f"Model not found: {path}")
 
@@ -172,20 +183,22 @@ class SHAPExplainer:
 
         # Get SHAP values
         explainer = self.explainers[model_name]
-        shap_values = explainer.shap_values(X_scaled)
+        try:
+            shap_values = explainer.shap_values(X_scaled, check_additivity=False)
+        except TypeError:
+            shap_values = explainer.shap_values(X_scaled)
 
-        # Handle multi-class: shap_values is a list of arrays (one per class)
-        # We take the mean absolute SHAP across classes for overall importance
+        # Handle multi-class / 3D arrays:
+        # shap_values can be: list of arrays, 3D ndarray (samples, features, classes), or 2D ndarray
+        model = self.models[model_name]
+        predictions = model.predict(X_scaled)
+
         if isinstance(shap_values, list):
-            # Multi-class: average absolute SHAP across all classes
             shap_abs = np.mean([np.abs(sv) for sv in shap_values], axis=0)
-            # For detailed per-class, use the predicted class
-            model = self.models[model_name]
-            predictions = model.predict(X_scaled)
+        elif hasattr(shap_values, 'ndim') and shap_values.ndim == 3:
+            shap_abs = np.mean(np.abs(shap_values), axis=2)
         else:
             shap_abs = np.abs(shap_values)
-            model = self.models[model_name]
-            predictions = model.predict(X_scaled)
 
         # Build per-sample explanations
         sample_explanations = []
@@ -202,13 +215,17 @@ class SHAPExplainer:
                     shap_importance = float(importance[idx])
 
                     # Get directional SHAP (positive = pushes toward higher class)
+                    pred_class = int(predictions[i])
                     if isinstance(shap_values, list):
-                        # Use predicted class SHAP for direction
-                        pred_class = int(predictions[i])
                         if pred_class < len(shap_values):
                             direction = float(shap_values[pred_class][i][idx])
                         else:
                             direction = 0.0
+                    elif hasattr(shap_values, 'ndim') and shap_values.ndim == 3:
+                        if pred_class < shap_values.shape[2]:
+                            direction = float(shap_values[i, idx, pred_class])
+                        else:
+                            direction = float(shap_values[i, idx, -1])
                     else:
                         direction = float(shap_values[i][idx])
 
