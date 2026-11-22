@@ -58,10 +58,10 @@ function initLungScene(containerId) {
 
     // 1. Scene
     lungScene = new THREE.Scene();
-    lungScene.background = new THREE.Color(0x060a14);
+    lungScene.background = new THREE.Color(0x0a0f1d);
 
-    // Subtle atmospheric fog for biotech depth
-    lungScene.fog = new THREE.FogExp2(0x060a14, 0.08);
+    // Subtle atmospheric fog for anatomical depth
+    lungScene.fog = new THREE.FogExp2(0x0a0f1d, 0.05);
 
     // 2. Camera
     lungCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
@@ -73,7 +73,7 @@ function initLungScene(containerId) {
         lungRenderer.setSize(width, height);
         lungRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         lungRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-        lungRenderer.toneMappingExposure = 1.1;
+        lungRenderer.toneMappingExposure = 1.15;
         container.appendChild(lungRenderer.domElement);
     } catch (e) {
         console.warn('WebGL not supported, rendering SVG anatomical fallback:', e);
@@ -93,24 +93,24 @@ function initLungScene(containerId) {
         lungControls.target.set(LUNG_INITIAL_TARGET.x, LUNG_INITIAL_TARGET.y, LUNG_INITIAL_TARGET.z);
     }
 
-    // 5. Scientific Biotech Lighting Setup
-    // Key Light: Cool Cyan-Blue from top-front-right
-    const keyLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
-    keyLight.position.set(4, 6, 5);
+    // 5. Scientific Neutral Surgical Lighting Setup (Balanced 5200K daylight, soft fill, subtle cool rim)
+    // Key Light: Clean warm daylight from top-front-right
+    const keyLight = new THREE.DirectionalLight(0xfffbf5, 2.0);
+    keyLight.position.set(5, 8, 6);
     lungScene.add(keyLight);
 
-    // Fill Light: Soft Electric Violet from bottom-left
-    const fillLight = new THREE.DirectionalLight(0x818cf8, 1.4);
-    fillLight.position.set(-4, -2, -3);
+    // Fill Light: Soft neutral ambient daylight from bottom-left
+    const fillLight = new THREE.DirectionalLight(0xe2e8f0, 1.2);
+    fillLight.position.set(-5, 0, 4);
     lungScene.add(fillLight);
 
-    // Rim/Back Light: Crisp Emerald-Cyan from behind
-    const rimLight = new THREE.DirectionalLight(0x2dd4bf, 1.8);
+    // Rim/Back Light: Very subtle cool surgical rim from behind to outline parenchymal contours
+    const rimLight = new THREE.DirectionalLight(0xa5b4fc, 0.8);
     rimLight.position.set(0, 5, -6);
     lungScene.add(rimLight);
 
-    // Soft Ambient Foundation
-    const ambientLight = new THREE.AmbientLight(0x0f172a, 0.9);
+    // Soft Ambient Foundation for even illumination without dark voids
+    const ambientLight = new THREE.AmbientLight(0xf8fafc, 0.85);
     lungScene.add(ambientLight);
 
     // Grid Floor / Reference Ring
@@ -173,24 +173,23 @@ function loadLungGLBModel(container) {
             lungModelGroup.position.y = -center.y * scale;
             lungModelGroup.position.z = -center.z * scale;
 
-            // Apply Premium Biotech Shaders to all child meshes
+            // Preserve native anatomical PBR materials from the HuBMAP/Visible Human GLB
+            // Retains natural pink/salmon lung parenchyma, off-white hyaline cartilage, and mucosal contrast
             lungModelGroup.traverse(child => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
 
-                    // Sophisticated biological physical material
-                    child.material = new THREE.MeshPhysicalMaterial({
-                        color: new THREE.Color(0x1e3a5f),
-                        emissive: new THREE.Color(0x06182a),
-                        roughness: 0.38,
-                        metalness: 0.18,
-                        clearcoat: 0.45,
-                        clearcoatRoughness: 0.25,
-                        transparent: true,
-                        opacity: 0.94,
-                        side: THREE.DoubleSide
-                    });
+                    if (child.material) {
+                        const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        mats.forEach(mat => {
+                            mat.side = THREE.DoubleSide;
+                            mat.roughness = Math.max(mat.roughness !== undefined ? mat.roughness : 0.48, 0.4);
+                            mat.metalness = Math.min(mat.metalness !== undefined ? mat.metalness : 0.06, 0.1);
+                            mat.depthWrite = true;
+                            mat.needsUpdate = true;
+                        });
+                    }
                 }
             });
 
@@ -211,26 +210,27 @@ function loadLungGLBModel(container) {
 }
 
 /**
- * Procedural Anatomical Fallback (Generates high-fidelity 3D lung lobes if GLB is unavailable)
+ * Procedural Anatomical Fallback (Generates anatomical 3D lung lobes if GLB is unavailable)
  */
 function buildProceduralLungGeometry() {
     lungModelGroup = new THREE.Group();
 
+    // Anatomical pink/salmon lung parenchymal tissue
     const lobeMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x1e3a5f,
-        emissive: 0x061a2e,
-        roughness: 0.4,
-        metalness: 0.2,
-        clearcoat: 0.4,
-        transparent: true,
-        opacity: 0.9
+        color: 0xc47a82,
+        roughness: 0.52,
+        metalness: 0.05,
+        clearcoat: 0.25,
+        clearcoatRoughness: 0.3,
+        side: THREE.DoubleSide
     });
 
+    // Off-white hyaline cartilage for tracheal-bronchial tree
     const bronchiaMaterial = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        emissive: 0x0284c7,
-        roughness: 0.3,
-        metalness: 0.5
+        color: 0xeee7de,
+        roughness: 0.45,
+        metalness: 0.08,
+        side: THREE.DoubleSide
     });
 
     // Right Lung (3 anatomical lobes)
@@ -334,7 +334,10 @@ function toggleLungWireframe() {
     if (lungModelGroup) {
         lungModelGroup.traverse(child => {
             if (child.isMesh && child.material) {
-                child.material.wireframe = isLungWireframe;
+                const mats = Array.isArray(child.material) ? child.material : [child.material];
+                mats.forEach(mat => {
+                    mat.wireframe = isLungWireframe;
+                });
             }
         });
     }

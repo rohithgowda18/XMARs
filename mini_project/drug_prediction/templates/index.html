@@ -298,16 +298,28 @@
                                 <div class="sc-card-title"><span>⚡</span> Molecular Signaling Network & Bypass Resistance Circuit</div>
                                 <span class="sc-card-subtitle">Real-time intracellular cascade mapping patient alterations, active drug targets, and bypass escape routes</span>
                             </div>
-                            <div class="shap-legend" style="margin:0;">
-                                <div class="legend-item"><span class="legend-box" style="background:#ef4444;"></span><span>Mutated Driver</span></div>
-                                <div class="legend-item"><span class="legend-box" style="background:#10b981;"></span><span>Inhibited Target</span></div>
-                                <div class="legend-item"><span class="legend-box" style="background:#eab308;"></span><span>Bypass Escape Route</span></div>
+                            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                <div class="btn-group" style="display:inline-flex; background:rgba(255,255,255,0.06); padding:2px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                                    <button id="btnSignalingViewDisrupted" class="btn-xs active" onclick="setSignalingViewMode('disrupted')" style="padding:4px 10px; font-size:0.75rem; border-radius:4px; border:none; background:var(--primary); color:#fff; cursor:pointer;">Patient Disrupted Circuits</button>
+                                    <button id="btnSignalingViewAll" class="btn-xs" onclick="setSignalingViewMode('all')" style="padding:4px 10px; font-size:0.75rem; border-radius:4px; border:none; background:transparent; color:var(--text-secondary); cursor:pointer;">Full Canonical Network</button>
+                                </div>
+                                <div class="shap-legend" style="margin:0;">
+                                    <div class="legend-item"><span class="legend-box" style="background:#ef4444;"></span><span>Mutated Driver</span></div>
+                                    <div class="legend-item"><span class="legend-box" style="background:#10b981;"></span><span>Inhibited Target</span></div>
+                                    <div class="legend-item"><span class="legend-box" style="background:#eab308;"></span><span>Bypass Escape Route</span></div>
+                                    <div class="legend-item"><span class="legend-box" style="background:#38bdf8;"></span><span>Basal / Intact</span></div>
+                                </div>
                             </div>
                         </div>
                         <div id="pathwayDiagramContainer" style="width:100%; min-height:460px; background:radial-gradient(circle at 50% 50%, rgba(15,23,42,0.95), rgba(7,11,20,0.98)); border:1px solid var(--border-subtle); border-radius:var(--radius-md); overflow:hidden; position:relative;">
                             <div style="text-align:center;padding:160px 20px;color:var(--text-muted)">
                                 Run prediction or multi-agent reasoning to generate the interactive molecular signaling cascade.
                             </div>
+                        </div>
+
+                        <!-- Interactive Molecular Node / Pathway Inspector -->
+                        <div id="pathwayNodeInspector" style="margin-top:14px; display:none; background:rgba(15, 23, 42, 0.85); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px;">
+                            <!-- Dynamically populated on node click -->
                         </div>
                     </div>
 
@@ -712,9 +724,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/plots.js') }}?v=2.0"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.0"></script>
-    <script src="{{ url_for('static', filename='js/lung_3d.js') }}?v=1.0"></script>
+    <script src="{{ url_for('static', filename='js/plots.js') }}?v=3.0"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=3.0"></script>
+    <script src="{{ url_for('static', filename='js/lung_3d.js') }}?v=3.0"></script>
 
     <!-- Legacy Compatibility Helpers for Existing Routes -->
     <script>
